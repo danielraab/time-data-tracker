@@ -1,0 +1,12 @@
+.git
+.gitignore
+.github
+.devcontainer
+.next
+node_modules
+*.md
+*.log
+.env
+.env.*
+!.env.example
+local.db
