@@ -1,0 +1,33 @@
+# TiDaTra production stack.
+#
+# Usage:
+#   docker compose pull        # fetch the latest image for the pinned tag
+#   docker compose up -d       # start in the background
+#   docker compose logs -f     # tail logs
+#
+# Override the image tag (defaults to the major.minor channel produced by the
+# release workflow) or the published port via a sibling .env file:
+#
+#   TIDATRA_TAG=0.1
+#   TIDATRA_PORT=3000
+#
+services:
+  app:
+    image: ghcr.io/danielraab/time-data-tracker:${TIDATRA_TAG:-0.1}
+    container_name: tidatra
+    restart: unless-stopped
+    ports:
+      - "${TIDATRA_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://localhost:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

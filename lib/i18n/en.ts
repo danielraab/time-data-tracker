@@ -6,6 +6,8 @@ export const t = {
   app: {
     name: "TiDaTra",
     tagline: "Time & Data Tracker",
+    versionLabel: (version: string) => `v${version}`,
+    sourceCode: "Source on GitHub",
   },
   common: {
     save: "Save",
