@@ -42,6 +42,16 @@ export function orphanEnds(entries: Entry[]): Entry[] {
   return entries.filter((e) => isOrphanEnd(e, entries));
 }
 
+/** Open starts whose timestamp is strictly before `beforeIso`. */
+export function openStartsBefore(entries: Entry[], beforeIso: string): Entry[] {
+  return openStarts(entries).filter((s) => s.timestamp < beforeIso);
+}
+
+/** Orphan ends whose timestamp is strictly after `afterIso`. */
+export function orphanEndsAfter(entries: Entry[], afterIso: string): Entry[] {
+  return orphanEnds(entries).filter((e) => e.timestamp > afterIso);
+}
+
 /** Pairs every span_start with its span_end (or null when still open). */
 export function pairSpans(entries: Entry[]): SpanPair[] {
   return entries

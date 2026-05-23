@@ -3,7 +3,9 @@ import {
   hasOpenSpan,
   isOpenSpanEntry,
   openStarts,
+  openStartsBefore,
   orphanEnds,
+  orphanEndsAfter,
   pairSpans,
 } from "./spans";
 import type { Entry } from "./types";
@@ -59,6 +61,26 @@ describe("span helpers", () => {
     expect(hasOpenSpan(points)).toBe(false);
     expect(openStarts(points)).toEqual([]);
     expect(orphanEnds(points)).toEqual([]);
+  });
+
+  it("only returns open starts strictly before the given time", () => {
+    const entries = [
+      entry({ _id: "early", entryType: "span_start", timestamp: "2026-01-01T00:00:00.000Z" }),
+      entry({ _id: "same",  entryType: "span_start", timestamp: "2026-01-01T12:00:00.000Z" }),
+      entry({ _id: "late",  entryType: "span_start", timestamp: "2026-01-02T00:00:00.000Z" }),
+    ];
+    const ids = openStartsBefore(entries, "2026-01-01T12:00:00.000Z").map((e) => e._id);
+    expect(ids).toEqual(["early"]);
+  });
+
+  it("only returns orphan ends strictly after the given time", () => {
+    const entries = [
+      entry({ _id: "before", entryType: "span_end", timestamp: "2026-01-01T00:00:00.000Z" }),
+      entry({ _id: "same",   entryType: "span_end", timestamp: "2026-01-01T12:00:00.000Z" }),
+      entry({ _id: "after",  entryType: "span_end", timestamp: "2026-01-02T00:00:00.000Z" }),
+    ];
+    const ids = orphanEndsAfter(entries, "2026-01-01T12:00:00.000Z").map((e) => e._id);
+    expect(ids).toEqual(["after"]);
   });
 
   it("pairs multiple spans independently", () => {

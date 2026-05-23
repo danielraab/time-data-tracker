@@ -38,8 +38,10 @@ export async function createEntry(input: EntryInput): Promise<Entry> {
   return { ...doc, _rev: res.rev };
 }
 
+/** A partial update for an entry. Passing `startEntryId: undefined` unlinks
+ *  a span_end from its span_start. */
 export type EntryPatch = Partial<
-  Pick<Entry, "timestamp" | "label" | "value" | "gps">
+  Pick<Entry, "timestamp" | "label" | "value" | "gps" | "startEntryId">
 >;
 
 export async function updateEntry(

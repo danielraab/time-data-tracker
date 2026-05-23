@@ -1,11 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   AlertCircle,
   Check,
-  CircleDot,
-  Hash,
   MapPin,
   Pencil,
   Play,
@@ -16,6 +14,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   createEntry,
   deleteEntry,
@@ -23,62 +29,49 @@ import {
 } from "@/lib/db/entries-repo";
 import {
   formatDateTime,
-  formatDurationBetween,
   fromDateTimeLocal,
   toDateTimeLocal,
 } from "@/lib/format";
+import { orphanEndsAfter } from "@/lib/spans";
 import { t } from "@/lib/i18n/en";
-import { cn } from "@/lib/utils";
-import type { Entry, EntryType } from "@/lib/types";
+import type { Entry } from "@/lib/types";
 
-function TypeIcon({ type }: { type: EntryType }) {
-  switch (type) {
-    case "point_label":
-      return <CircleDot className="size-4" />;
-    case "point_number":
-      return <Hash className="size-4" />;
-    case "span_start":
-      return <Play className="size-4" />;
-    case "span_end":
-      return <Square className="size-4" />;
-  }
-}
+const NO_LINK = "__none__";
 
-interface EntryItemProps {
+interface OpenStartItemProps {
   entry: Entry;
-  pairedEnd: Entry | null;
-  pairedStart: Entry | null;
-  isOpen: boolean;
+  allEntries: Entry[];
 }
 
-export function EntryItem({
-  entry,
-  pairedEnd,
-  pairedStart,
-  isOpen,
-}: EntryItemProps) {
+export function OpenStartItem({ entry, allEntries }: OpenStartItemProps) {
   const [editing, setEditing] = useState(false);
   const [timeLocal, setTimeLocal] = useState(toDateTimeLocal(entry.timestamp));
   const [label, setLabel] = useState(entry.label ?? "");
-  const [valueText, setValueText] = useState(
-    entry.value !== undefined ? String(entry.value) : "",
-  );
+  const [linkedEndId, setLinkedEndId] = useState(NO_LINK);
   const [busy, setBusy] = useState(false);
+
+  // Candidate ends must come AFTER the (in-progress) start timestamp.
+  const candidateEnds = useMemo(() => {
+    try {
+      return orphanEndsAfter(allEntries, fromDateTimeLocal(timeLocal));
+    } catch {
+      return [];
+    }
+  }, [allEntries, timeLocal]);
 
   async function handleSave() {
     if (busy) return;
     setBusy(true);
     try {
-      const patch: Parameters<typeof updateEntry>[1] = {
+      await updateEntry(entry._id, {
         timestamp: fromDateTimeLocal(timeLocal),
         label: label.trim() || undefined,
-      };
-      if (entry.entryType === "point_number") {
-        const n = Number(valueText);
-        if (Number.isFinite(n)) patch.value = n;
+      });
+      if (linkedEndId !== NO_LINK) {
+        await updateEntry(linkedEndId, { startEntryId: entry._id });
       }
-      await updateEntry(entry._id, patch);
       setEditing(false);
+      setLinkedEndId(NO_LINK);
     } finally {
       setBusy(false);
     }
@@ -87,7 +80,7 @@ export function EntryItem({
   function handleCancel() {
     setTimeLocal(toDateTimeLocal(entry.timestamp));
     setLabel(entry.label ?? "");
-    setValueText(entry.value !== undefined ? String(entry.value) : "");
+    setLinkedEndId(NO_LINK);
     setEditing(false);
   }
 
@@ -96,7 +89,7 @@ export function EntryItem({
     await deleteEntry(entry._id);
   }
 
-  async function handleCloseSpan() {
+  async function handleCloseNow() {
     if (busy) return;
     setBusy(true);
     try {
@@ -113,41 +106,24 @@ export function EntryItem({
   }
 
   return (
-    <li
-      className={cn(
-        "rounded-lg border border-border bg-card p-3",
-        isOpen &&
-          "border-amber-500/60 bg-amber-50/40 dark:bg-amber-500/5",
-      )}
-    >
+    <li className="rounded-lg border border-amber-500/60 bg-amber-50/40 p-3 dark:bg-amber-500/5">
       <div className="flex items-start gap-3">
         <div className="mt-1 text-muted-foreground">
-          <TypeIcon type={entry.entryType} />
+          <Play className="size-4" />
         </div>
+
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <span className="text-muted-foreground">
               {formatDateTime(entry.timestamp)}
             </span>
-            {entry.entryType === "span_start" && pairedEnd && (
-              <Badge variant="outline" className="font-normal">
-                {formatDurationBetween(entry.timestamp, pairedEnd.timestamp)}
-              </Badge>
-            )}
-            {entry.entryType === "span_end" && pairedStart && (
-              <Badge variant="outline" className="font-normal">
-                {formatDurationBetween(pairedStart.timestamp, entry.timestamp)}
-              </Badge>
-            )}
-            {isOpen && (
-              <Badge
-                variant="outline"
-                className="gap-1 border-amber-500/60 font-normal text-amber-700 dark:text-amber-400"
-              >
-                <AlertCircle className="size-3" />
-                {t.entries.openSpanNote}
-              </Badge>
-            )}
+            <Badge
+              variant="outline"
+              className="gap-1 border-amber-500/60 font-normal text-amber-700 dark:text-amber-400"
+            >
+              <AlertCircle className="size-3" />
+              {t.entries.openSpanNote}
+            </Badge>
             {entry.gps && (
               <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                 <MapPin className="size-3" />
@@ -163,20 +139,36 @@ export function EntryItem({
                 value={timeLocal}
                 onChange={(e) => setTimeLocal(e.target.value)}
               />
-              {entry.entryType === "point_number" ? (
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  value={valueText}
-                  onChange={(e) => setValueText(e.target.value)}
-                />
-              ) : (
-                <Input
-                  value={label}
-                  onChange={(e) => setLabel(e.target.value)}
-                  placeholder={t.entries.labelLabel}
-                />
-              )}
+              <Input
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+                placeholder={t.entries.labelLabel}
+              />
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">
+                  {t.entries.linkedEndLabel}
+                </Label>
+                {candidateEnds.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    {t.entries.noEndCandidates}
+                  </p>
+                ) : (
+                  <Select value={linkedEndId} onValueChange={setLinkedEndId}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NO_LINK}>{t.entries.noLink}</SelectItem>
+                      {candidateEnds.map((end) => (
+                        <SelectItem key={end._id} value={end._id}>
+                          {end.label || t.entries.types.span_end} ·{" "}
+                          {formatDateTime(end.timestamp)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
               <div className="flex gap-2">
                 <Button size="sm" onClick={handleSave} disabled={busy}>
                   <Check className="size-4" />
@@ -188,37 +180,26 @@ export function EntryItem({
                 </Button>
               </div>
             </div>
-          ) : entry.entryType === "point_number" ? (
-            <p className="text-sm font-medium">
-              {entry.value}
-              {entry.label && (
-                <span className="ml-2 font-normal text-muted-foreground">
-                  · {entry.label}
-                </span>
-              )}
-            </p>
           ) : entry.label ? (
             <p className="text-sm font-medium">{entry.label}</p>
           ) : (
             <p className="text-sm italic text-muted-foreground">
-              {t.entries.types[entry.entryType]}
+              {t.entries.types.span_start}
             </p>
           )}
         </div>
 
         {!editing && (
           <div className="flex shrink-0 items-center gap-1">
-            {entry.entryType === "span_start" && !pairedEnd && (
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={handleCloseSpan}
-                disabled={busy}
-              >
-                <Square className="size-4" />
-                {t.entries.closeSpan}
-              </Button>
-            )}
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={handleCloseNow}
+              disabled={busy}
+            >
+              <Square className="size-4" />
+              {t.entries.closeSpan}
+            </Button>
             <Button
               size="sm"
               variant="ghost"
@@ -242,3 +223,4 @@ export function EntryItem({
     </li>
   );
 }
+

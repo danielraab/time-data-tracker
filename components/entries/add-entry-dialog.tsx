@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { MapPin } from "lucide-react";
 import {
   Dialog,
@@ -21,8 +21,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { createEntry } from "@/lib/db/entries-repo";
-import { openStarts } from "@/lib/spans";
-import { fromDateTimeLocal, toDateTimeLocal } from "@/lib/format";
+import { openStartsBefore } from "@/lib/spans";
+import {
+  formatDateTime,
+  fromDateTimeLocal,
+  toDateTimeLocal,
+} from "@/lib/format";
 import { t } from "@/lib/i18n/en";
 import type { Entry, EntryType, Gps } from "@/lib/types";
 
@@ -95,7 +99,15 @@ function AddEntryForm({
   const [linkedStartId, setLinkedStartId] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
-  const openStartEntries = openStarts(entries);
+  // Only starts that happen BEFORE this proposed end can be its match.
+  const candidateStarts = useMemo(() => {
+    try {
+      const proposedEndIso = fromDateTimeLocal(timeLocal);
+      return openStartsBefore(entries, proposedEndIso);
+    } catch {
+      return [];
+    }
+  }, [entries, timeLocal]);
 
   function setNow() {
     setTimeLocal(toDateTimeLocal(new Date().toISOString()));
@@ -149,8 +161,7 @@ function AddEntryForm({
 
   const showLabelField = entryType !== "point_number";
   const showValueField = entryType === "point_number";
-  const showLinkField =
-    entryType === "span_end" && openStartEntries.length > 0;
+  const showLinkField = entryType === "span_end";
 
   return (
     <>
@@ -227,20 +238,32 @@ function AddEntryForm({
 
         {showLinkField && (
           <div className="space-y-2">
-            <Label htmlFor="entry-link">{t.entries.closeSpan}</Label>
-            <Select value={linkedStartId} onValueChange={setLinkedStartId}>
-              <SelectTrigger id="entry-link">
-                <SelectValue placeholder="—" />
-              </SelectTrigger>
-              <SelectContent>
-                {openStartEntries.map((start) => (
-                  <SelectItem key={start._id} value={start._id}>
-                    {start.label || t.entries.types.span_start} ·{" "}
-                    {new Date(start.timestamp).toLocaleString()}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label htmlFor="entry-link">{t.entries.linkedStartLabel}</Label>
+            {candidateStarts.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                {t.entries.noStartCandidates}
+              </p>
+            ) : (
+              <Select
+                value={linkedStartId || "__none__"}
+                onValueChange={(v) =>
+                  setLinkedStartId(v === "__none__" ? "" : v)
+                }
+              >
+                <SelectTrigger id="entry-link">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">{t.entries.noLink}</SelectItem>
+                  {candidateStarts.map((start) => (
+                    <SelectItem key={start._id} value={start._id}>
+                      {start.label || t.entries.types.span_start} ·{" "}
+                      {formatDateTime(start.timestamp)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         )}
 

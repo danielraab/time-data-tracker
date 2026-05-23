@@ -85,4 +85,37 @@ describe("entries repo", () => {
     const created = await createEntry(makeInput({ label: "   " }));
     expect(created.label).toBeUndefined();
   });
+
+  it("can set startEntryId via updateEntry (linking)", async () => {
+    const start = await createEntry(makeInput({ entryType: "span_start" }));
+    const end = await createEntry(
+      makeInput({
+        entryType: "span_end",
+        timestamp: "2026-01-01T01:00:00.000Z",
+      }),
+    );
+    expect(end.startEntryId).toBeUndefined();
+
+    const linked = await updateEntry(end._id, { startEntryId: start._id });
+    expect(linked.startEntryId).toBe(start._id);
+  });
+
+  it("can clear startEntryId via updateEntry (unlinking)", async () => {
+    const start = await createEntry(makeInput({ entryType: "span_start" }));
+    const end = await createEntry(
+      makeInput({
+        entryType: "span_end",
+        timestamp: "2026-01-01T01:00:00.000Z",
+        startEntryId: start._id,
+      }),
+    );
+    expect(end.startEntryId).toBe(start._id);
+
+    const unlinked = await updateEntry(end._id, { startEntryId: undefined });
+    expect(unlinked.startEntryId).toBeUndefined();
+
+    // And the persisted value is gone too, not just unset in-memory.
+    const reread = (await listEntries("series:a")).find((e) => e._id === end._id);
+    expect(reread?.startEntryId).toBeUndefined();
+  });
 });
