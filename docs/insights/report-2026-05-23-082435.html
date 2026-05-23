@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Claude Code Insights</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #f8fafc; color: #334155; line-height: 1.65; padding: 48px 24px; }
+    .container { max-width: 800px; margin: 0 auto; }
+    h1 { font-size: 32px; font-weight: 700; color: #0f172a; margin-bottom: 8px; }
+    h2 { font-size: 20px; font-weight: 600; color: #0f172a; margin-top: 48px; margin-bottom: 16px; }
+    .subtitle { color: #64748b; font-size: 15px; margin-bottom: 32px; }
+    .nav-toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 24px 0 32px 0; padding: 16px; background: white; border-radius: 8px; border: 1px solid #e2e8f0; }
+    .nav-toc a { font-size: 12px; color: #64748b; text-decoration: none; padding: 6px 12px; border-radius: 6px; background: #f1f5f9; transition: all 0.15s; }
+    .nav-toc a:hover { background: #e2e8f0; color: #334155; }
+    .stats-row { display: flex; gap: 24px; margin-bottom: 40px; padding: 20px 0; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; flex-wrap: wrap; }
+    .stat { text-align: center; }
+    .stat-value { font-size: 24px; font-weight: 700; color: #0f172a; }
+    .stat-label { font-size: 11px; color: #64748b; text-transform: uppercase; }
+    .at-a-glance { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: 1px solid #f59e0b; border-radius: 12px; padding: 20px 24px; margin-bottom: 32px; }
+    .glance-title { font-size: 16px; font-weight: 700; color: #92400e; margin-bottom: 16px; }
+    .glance-sections { display: flex; flex-direction: column; gap: 12px; }
+    .glance-section { font-size: 14px; color: #78350f; line-height: 1.6; }
+    .glance-section strong { color: #92400e; }
+    .see-more { color: #b45309; text-decoration: none; font-size: 13px; white-space: nowrap; }
+    .see-more:hover { text-decoration: underline; }
+    .project-areas { display: flex; flex-direction: column; gap: 12px; margin-bottom: 32px; }
+    .project-area { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; }
+    .area-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .area-name { font-weight: 600; font-size: 15px; color: #0f172a; }
+    .area-count { font-size: 12px; color: #64748b; background: #f1f5f9; padding: 2px 8px; border-radius: 4px; }
+    .area-desc { font-size: 14px; color: #475569; line-height: 1.5; }
+    .narrative { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 24px; }
+    .narrative p { margin-bottom: 12px; font-size: 14px; color: #475569; line-height: 1.7; }
+    .key-insight { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; margin-top: 12px; font-size: 14px; color: #166534; }
+    .section-intro { font-size: 14px; color: #64748b; margin-bottom: 16px; }
+    .big-wins { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
+    .big-win { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; }
+    .big-win-title { font-weight: 600; font-size: 15px; color: #166534; margin-bottom: 8px; }
+    .big-win-desc { font-size: 14px; color: #15803d; line-height: 1.5; }
+    .friction-categories { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
+    .friction-category { background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; padding: 16px; }
+    .friction-title { font-weight: 600; font-size: 15px; color: #991b1b; margin-bottom: 6px; }
+    .friction-desc { font-size: 13px; color: #7f1d1d; margin-bottom: 10px; }
+    .friction-examples { margin: 0 0 0 20px; font-size: 13px; color: #334155; }
+    .friction-examples li { margin-bottom: 4px; }
+    .claude-md-section { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 16px; margin-bottom: 20px; }
+    .claude-md-section h3 { font-size: 14px; font-weight: 600; color: #1e40af; margin: 0 0 12px 0; }
+    .claude-md-actions { margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #dbeafe; }
+    .copy-all-btn { background: #2563eb; color: white; border: none; border-radius: 4px; padding: 6px 12px; font-size: 12px; cursor: pointer; font-weight: 500; transition: all 0.2s; }
+    .copy-all-btn:hover { background: #1d4ed8; }
+    .copy-all-btn.copied { background: #16a34a; }
+    .claude-md-item { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; padding: 10px 0; border-bottom: 1px solid #dbeafe; }
+    .claude-md-item:last-child { border-bottom: none; }
+    .cmd-checkbox { margin-top: 2px; }
+    .cmd-code { background: white; padding: 8px 12px; border-radius: 4px; font-size: 12px; color: #1e40af; border: 1px solid #bfdbfe; font-family: monospace; display: block; white-space: pre-wrap; word-break: break-word; flex: 1; }
+    .cmd-why { font-size: 12px; color: #64748b; width: 100%; padding-left: 24px; margin-top: 4px; }
+    .features-section, .patterns-section { display: flex; flex-direction: column; gap: 12px; margin: 16px 0; }
+    .feature-card { background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 16px; }
+    .pattern-card { background: #f0f9ff; border: 1px solid #7dd3fc; border-radius: 8px; padding: 16px; }
+    .feature-title, .pattern-title { font-weight: 600; font-size: 15px; color: #0f172a; margin-bottom: 6px; }
+    .feature-oneliner { font-size: 14px; color: #475569; margin-bottom: 8px; }
+    .pattern-summary { font-size: 14px; color: #475569; margin-bottom: 8px; }
+    .feature-why, .pattern-detail { font-size: 13px; color: #334155; line-height: 1.5; }
+    .feature-examples { margin-top: 12px; }
+    .feature-example { padding: 8px 0; border-top: 1px solid #d1fae5; }
+    .feature-example:first-child { border-top: none; }
+    .example-desc { font-size: 13px; color: #334155; margin-bottom: 6px; }
+    .example-code-row { display: flex; align-items: flex-start; gap: 8px; }
+    .example-code { flex: 1; background: #f1f5f9; padding: 8px 12px; border-radius: 4px; font-family: monospace; font-size: 12px; color: #334155; overflow-x: auto; white-space: pre-wrap; }
+    .copyable-prompt-section { margin-top: 12px; padding-top: 12px; border-top: 1px solid #e2e8f0; }
+    .copyable-prompt-row { display: flex; align-items: flex-start; gap: 8px; }
+    .copyable-prompt { flex: 1; background: #f8fafc; padding: 10px 12px; border-radius: 4px; font-family: monospace; font-size: 12px; color: #334155; border: 1px solid #e2e8f0; white-space: pre-wrap; line-height: 1.5; }
+    .feature-code { background: #f8fafc; padding: 12px; border-radius: 6px; margin-top: 12px; border: 1px solid #e2e8f0; display: flex; align-items: flex-start; gap: 8px; }
+    .feature-code code { flex: 1; font-family: monospace; font-size: 12px; color: #334155; white-space: pre-wrap; }
+    .pattern-prompt { background: #f8fafc; padding: 12px; border-radius: 6px; margin-top: 12px; border: 1px solid #e2e8f0; }
+    .pattern-prompt code { font-family: monospace; font-size: 12px; color: #334155; display: block; white-space: pre-wrap; margin-bottom: 8px; }
+    .prompt-label { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #64748b; margin-bottom: 6px; }
+    .copy-btn { background: #e2e8f0; border: none; border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer; color: #475569; flex-shrink: 0; }
+    .copy-btn:hover { background: #cbd5e1; }
+    .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 24px 0; }
+    .chart-card { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; }
+    .chart-title { font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; margin-bottom: 12px; }
+    .bar-row { display: flex; align-items: center; margin-bottom: 6px; }
+    .bar-label { width: 100px; font-size: 11px; color: #475569; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bar-track { flex: 1; height: 6px; background: #f1f5f9; border-radius: 3px; margin: 0 8px; }
+    .bar-fill { height: 100%; border-radius: 3px; }
+    .bar-value { width: 28px; font-size: 11px; font-weight: 500; color: #64748b; text-align: right; }
+    .empty { color: #94a3b8; font-size: 13px; }
+    .horizon-section { display: flex; flex-direction: column; gap: 16px; }
+    .horizon-card { background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%); border: 1px solid #c4b5fd; border-radius: 8px; padding: 16px; }
+    .horizon-title { font-weight: 600; font-size: 15px; color: #5b21b6; margin-bottom: 8px; }
+    .horizon-possible { font-size: 14px; color: #334155; margin-bottom: 10px; line-height: 1.5; }
+    .horizon-tip { font-size: 13px; color: #6b21a8; background: rgba(255,255,255,0.6); padding: 8px 12px; border-radius: 4px; }
+    .feedback-header { margin-top: 48px; color: #64748b; font-size: 16px; }
+    .feedback-intro { font-size: 13px; color: #94a3b8; margin-bottom: 16px; }
+    .feedback-section { margin-top: 16px; }
+    .feedback-section h3 { font-size: 14px; font-weight: 600; color: #475569; margin-bottom: 12px; }
+    .feedback-card { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+    .feedback-card.team-card { background: #eff6ff; border-color: #bfdbfe; }
+    .feedback-card.model-card { background: #faf5ff; border-color: #e9d5ff; }
+    .feedback-title { font-weight: 600; font-size: 14px; color: #0f172a; margin-bottom: 6px; }
+    .feedback-detail { font-size: 13px; color: #475569; line-height: 1.5; }
+    .feedback-evidence { font-size: 12px; color: #64748b; margin-top: 8px; }
+    .fun-ending { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: 1px solid #fbbf24; border-radius: 12px; padding: 24px; margin-top: 40px; text-align: center; }
+    .fun-headline { font-size: 18px; font-weight: 600; color: #78350f; margin-bottom: 8px; }
+    .fun-detail { font-size: 14px; color: #92400e; }
+    .collapsible-section { margin-top: 16px; }
+    .collapsible-header { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 12px 0; border-bottom: 1px solid #e2e8f0; }
+    .collapsible-header h3 { margin: 0; font-size: 14px; font-weight: 600; color: #475569; }
+    .collapsible-arrow { font-size: 12px; color: #94a3b8; transition: transform 0.2s; }
+    .collapsible-content { display: none; padding-top: 16px; }
+    .collapsible-content.open { display: block; }
+    .collapsible-header.open .collapsible-arrow { transform: rotate(90deg); }
+    @media (max-width: 640px) { .charts-row { grid-template-columns: 1fr; } .stats-row { justify-content: center; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Claude Code Insights</h1>
+    <p class="subtitle">7 messages across 1 sessions (2 total) | 2026-05-22 to 2026-05-22</p>
+
+    
+    <div class="at-a-glance">
+      <div class="glance-title">At a Glance</div>
+      <div class="glance-sections">
+        <div class="glance-section"><strong>What's working:</strong> You ran a focused, multi-goal scaffolding sprint that took a PWA from zero to MVP while also diagnosing a tricky bug and hardening it with tests. The &apos;fix + harden&apos; instinct—tracing the series-not-found issue to a root cause, adding a slug helper, then locking it in with regression tests—is the kind of disciplined pattern that compounds well over time. <a href="#section-wins" class="see-more">Impressive Things You Did →</a></div>
+        <div class="glance-section"><strong>What's hindering you:</strong> On Claude&apos;s side, browser-only dependencies got wired in without SSR guards (the PouchDB `self` crash) and React 19 purity issues slipped past until lint caught them—both signal Claude could have probed your runtime constraints earlier. On your side, a long session ran without commits, so when rework piled up there were no rollback points; flagging URL/ID conventions and the SSR vs CSR target up front would also have prevented some of the friction. <a href="#section-friction" class="see-more">Where Things Go Wrong →</a></div>
+        <div class="glance-section"><strong>Quick wins to try:</strong> Try <strong>Hooks</strong> to auto-run lint, typecheck, or tests at lifecycle events so issues like React 19 purity violations surface immediately instead of mid-session. A <strong>Custom Skill</strong> for &apos;commit at milestone&apos; (scaffold done, bug fixed, tests green) would give you natural checkpoints and make long sessions far less risky to navigate. <a href="#section-features" class="see-more">Features to Try →</a></div>
+        <div class="glance-section"><strong>Ambitious workflows:</strong> With stronger models, you could move to a spec-driven loop: write Gherkin or TypeScript contracts up front and let Claude iterate autonomously—run specs, patch, re-run—until everything&apos;s green, instead of diagnosing reactively. You could also spawn parallel subagents in git worktrees to build independent PWA features (offline sync, notifications, themes) simultaneously, each writing tests first and self-reviewing before merge. <a href="#section-horizon" class="see-more">On the Horizon →</a></div>
+      </div>
+    </div>
+    
+
+    <nav class="nav-toc">
+      <a href="#section-work">What You Work On</a>
+      <a href="#section-usage">How You Use CC</a>
+      <a href="#section-wins">Impressive Things</a>
+      <a href="#section-friction">Where Things Go Wrong</a>
+      <a href="#section-features">Features to Try</a>
+      <a href="#section-patterns">New Usage Patterns</a>
+      <a href="#section-horizon">On the Horizon</a>
+      <a href="#section-feedback">Team Feedback</a>
+    </nav>
+
+    <div class="stats-row">
+      <div class="stat"><div class="stat-value">7</div><div class="stat-label">Messages</div></div>
+      <div class="stat"><div class="stat-value">+3,733/-40</div><div class="stat-label">Lines</div></div>
+      <div class="stat"><div class="stat-value">44</div><div class="stat-label">Files</div></div>
+      <div class="stat"><div class="stat-value">1</div><div class="stat-label">Days</div></div>
+      <div class="stat"><div class="stat-value">7</div><div class="stat-label">Msgs/Day</div></div>
+    </div>
+
+    
+    <h2 id="section-work">What You Work On</h2>
+    <div class="project-areas">
+      
+        <div class="project-area">
+          <div class="area-header">
+            <span class="area-name">PWA Scaffolding &amp; Setup</span>
+            <span class="area-count">~1 sessions</span>
+          </div>
+          <div class="area-desc">Built the initial MVP scaffold for the TiDaTra Progressive Web App using TypeScript as the primary language. Claude Code handled extensive file creation (50 Write operations) and configuration across Markdown, YAML, and JSON files to establish the project structure.</div>
+        </div>
+      
+        <div class="project-area">
+          <div class="area-header">
+            <span class="area-name">Bug Diagnosis &amp; Fixes</span>
+            <span class="area-count">~1 sessions</span>
+          </div>
+          <div class="area-desc">Diagnosed and resolved a series-not-found bug caused by URL encode/decode mismatch with colons in IDs, plus an SSR crash from PouchDB referencing `self`. Claude introduced a slug helper utility and worked through buggy code friction to land a working fix.</div>
+        </div>
+      
+        <div class="project-area">
+          <div class="area-header">
+            <span class="area-name">Test Implementation</span>
+            <span class="area-count">~1 sessions</span>
+          </div>
+          <div class="area-desc">Authored 26 passing tests to validate the slug helper and series routing behavior. Claude used Bash extensively (43 invocations) to run test suites and verify outcomes iteratively.</div>
+        </div>
+      
+        <div class="project-area">
+          <div class="area-header">
+            <span class="area-name">Code Quality &amp; Linting</span>
+            <span class="area-count">~1 sessions</span>
+          </div>
+          <div class="area-desc">Addressed React 19 purity issues flagged by the linter and refined TypeScript code via 28 Edit operations. Claude coordinated multi-file changes to bring the codebase into compliance with modern React conventions.</div>
+        </div>
+      
+        <div class="project-area">
+          <div class="area-header">
+            <span class="area-name">Project Documentation</span>
+            <span class="area-count">~1 sessions</span>
+          </div>
+          <div class="area-desc">Produced project documentation across 16 Markdown files alongside YAML configuration, capturing setup steps and architectural decisions for the new PWA. Claude used TodoWrite to plan and track documentation deliverables during the session.</div>
+        </div>
+      
+    </div>
+    
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title">What You Wanted</div>
+        <div class="bar-row">
+        <div class="bar-label">Project Documentation</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#2563eb"></div></div>
+        <div class="bar-value">1</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Feature Implementation</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#2563eb"></div></div>
+        <div class="bar-value">1</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Bug Fix</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#2563eb"></div></div>
+        <div class="bar-value">1</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Test Implementation</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#2563eb"></div></div>
+        <div class="bar-value">1</div>
+      </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Top Tools Used</div>
+        <div class="bar-row">
+        <div class="bar-label">Write</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#0891b2"></div></div>
+        <div class="bar-value">50</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Bash</div>
+        <div class="bar-track"><div class="bar-fill" style="width:86%;background:#0891b2"></div></div>
+        <div class="bar-value">43</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Edit</div>
+        <div class="bar-track"><div class="bar-fill" style="width:56.00000000000001%;background:#0891b2"></div></div>
+        <div class="bar-value">28</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Read</div>
+        <div class="bar-track"><div class="bar-fill" style="width:38%;background:#0891b2"></div></div>
+        <div class="bar-value">19</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">TodoWrite</div>
+        <div class="bar-track"><div class="bar-fill" style="width:16%;background:#0891b2"></div></div>
+        <div class="bar-value">8</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">ToolSearch</div>
+        <div class="bar-track"><div class="bar-fill" style="width:4%;background:#0891b2"></div></div>
+        <div class="bar-value">2</div>
+      </div>
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title">Languages</div>
+        <div class="bar-row">
+        <div class="bar-label">TypeScript</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#10b981"></div></div>
+        <div class="bar-value">65</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Markdown</div>
+        <div class="bar-track"><div class="bar-fill" style="width:24.615384615384617%;background:#10b981"></div></div>
+        <div class="bar-value">16</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">JSON</div>
+        <div class="bar-track"><div class="bar-fill" style="width:7.6923076923076925%;background:#10b981"></div></div>
+        <div class="bar-value">5</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">YAML</div>
+        <div class="bar-track"><div class="bar-fill" style="width:4.615384615384616%;background:#10b981"></div></div>
+        <div class="bar-value">3</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">CSS</div>
+        <div class="bar-track"><div class="bar-fill" style="width:3.076923076923077%;background:#10b981"></div></div>
+        <div class="bar-value">2</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">JavaScript</div>
+        <div class="bar-track"><div class="bar-fill" style="width:1.5384615384615385%;background:#10b981"></div></div>
+        <div class="bar-value">1</div>
+      </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Session Types</div>
+        <div class="bar-row">
+        <div class="bar-label">Multi Task</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#8b5cf6"></div></div>
+        <div class="bar-value">1</div>
+      </div>
+      </div>
+    </div>
+
+    
+    <h2 id="section-usage">How You Use Claude Code</h2>
+    <div class="narrative">
+      <p>You operate in <strong>long, autonomous sessions with high trust</strong>—a single 17-hour stretch with only 7 messages tells the story of someone who hands Claude a substantial goal and lets it run. With 50 Writes, 43 Bash calls, and 28 Edits against just a handful of user turns, you&apos;re clearly favoring <strong>broad upfront direction over tight iteration loops</strong>. The TiDaTra PWA scaffold plus a bug fix plus tests all bundled into one sitting suggests you think in milestones, not micro-steps, and you&apos;re comfortable letting Claude execute multi-file changes across TypeScript, Markdown, YAML, and JSON without constant check-ins.</p>
+<p>Your interaction style tolerates <strong>friction-as-it-emerges rather than friction-prevention</strong>. The session hit real problems—an SSR crash from PouchDB touching `self`, React 19 lint purity issues, and a colon-encoding mismatch in series IDs—but you didn&apos;t pre-specify constraints to avoid them; you let Claude discover and resolve them in flight, ultimately landing 26 passing tests and a working slug helper. The pairing of `ExitPlanMode` (used twice) with `TodoWrite` (8x) shows you&apos;re <strong>comfortable with Claude planning its own work</strong>, approving a direction and then stepping back.</p>
+<p>Notably, you provided <strong>no recorded custom instructions</strong>, reinforcing that you trust default Claude behavior and judge by outcomes rather than process. The TypeScript-heavy footprint (65 files) alongside Markdown docs suggests you treat a session as &apos;ship a feature slice end-to-end&apos;—code, docs, and tests together—rather than separating concerns into distinct conversations.</p>
+      <div class="key-insight"><strong>Key pattern:</strong> You delegate large, multi-faceted goals in a single session and let Claude autonomously plan, build, debug, and test with minimal interruption.</div>
+    </div>
+    
+
+    <!-- Response Time Distribution -->
+    <div class="chart-card" style="margin: 24px 0;">
+      <div class="chart-title">User Response Time Distribution</div>
+      <div class="bar-row">
+        <div class="bar-label">2-10s</div>
+        <div class="bar-track"><div class="bar-fill" style="width:0%;background:#6366f1"></div></div>
+        <div class="bar-value">0</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">10-30s</div>
+        <div class="bar-track"><div class="bar-fill" style="width:0%;background:#6366f1"></div></div>
+        <div class="bar-value">0</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">30s-1m</div>
+        <div class="bar-track"><div class="bar-fill" style="width:0%;background:#6366f1"></div></div>
+        <div class="bar-value">0</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">1-2m</div>
+        <div class="bar-track"><div class="bar-fill" style="width:0%;background:#6366f1"></div></div>
+        <div class="bar-value">0</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">2-5m</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#6366f1"></div></div>
+        <div class="bar-value">1</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">5-15m</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#6366f1"></div></div>
+        <div class="bar-value">1</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">>15m</div>
+        <div class="bar-track"><div class="bar-fill" style="width:0%;background:#6366f1"></div></div>
+        <div class="bar-value">0</div>
+      </div>
+      <div style="font-size: 12px; color: #64748b; margin-top: 8px;">
+        Median: 315.0s &bull; Average: 250.3s
+      </div>
+    </div>
+
+    <!-- Multi-clauding Section (matching Python reference) -->
+    <div class="chart-card" style="margin: 24px 0;">
+      <div class="chart-title">Multi-Clauding (Parallel Sessions)</div>
+      
+        <p style="font-size: 14px; color: #64748b; padding: 8px 0;">
+          No parallel session usage detected. You typically work with one Claude Code session at a time.
+        </p>
+      
+    </div>
+
+    <!-- Time of Day & Tool Errors -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title" style="display: flex; align-items: center; gap: 12px;">
+          User Messages by Time of Day
+          <select id="timezone-select" style="font-size: 12px; padding: 4px 8px; border-radius: 4px; border: 1px solid #e2e8f0;">
+            <option value="0">PT (UTC-8)</option>
+            <option value="3">ET (UTC-5)</option>
+            <option value="8">London (UTC)</option>
+            <option value="9">CET (UTC+1)</option>
+            <option value="17">Tokyo (UTC+9)</option>
+            <option value="custom">Custom offset...</option>
+          </select>
+          <input type="number" id="custom-offset" placeholder="UTC offset" style="display: none; width: 80px; font-size: 12px; padding: 4px; border-radius: 4px; border: 1px solid #e2e8f0;">
+        </div>
+        <div id="hour-histogram">
+      <div class="bar-row">
+        <div class="bar-label">Morning (6-12)</div>
+        <div class="bar-track"><div class="bar-fill" style="width:40%;background:#8b5cf6"></div></div>
+        <div class="bar-value">2</div>
+      </div>
+
+      <div class="bar-row">
+        <div class="bar-label">Afternoon (12-18)</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#8b5cf6"></div></div>
+        <div class="bar-value">5</div>
+      </div>
+
+      <div class="bar-row">
+        <div class="bar-label">Evening (18-24)</div>
+        <div class="bar-track"><div class="bar-fill" style="width:0%;background:#8b5cf6"></div></div>
+        <div class="bar-value">0</div>
+      </div>
+
+      <div class="bar-row">
+        <div class="bar-label">Night (0-6)</div>
+        <div class="bar-track"><div class="bar-fill" style="width:0%;background:#8b5cf6"></div></div>
+        <div class="bar-value">0</div>
+      </div></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Tool Errors Encountered</div>
+        <div class="bar-row">
+        <div class="bar-label">Command Failed</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#dc2626"></div></div>
+        <div class="bar-value">3</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">User Rejected</div>
+        <div class="bar-track"><div class="bar-fill" style="width:66.66666666666666%;background:#dc2626"></div></div>
+        <div class="bar-value">2</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Other</div>
+        <div class="bar-track"><div class="bar-fill" style="width:33.33333333333333%;background:#dc2626"></div></div>
+        <div class="bar-value">1</div>
+      </div>
+      </div>
+    </div>
+
+    
+    <h2 id="section-wins">Impressive Things You Did</h2>
+    <p class="section-intro">In a marathon 17-hour session, you scaffolded a TiDaTra PWA from scratch and shipped it with passing tests.</p>
+    <div class="big-wins">
+      
+        <div class="big-win">
+          <div class="big-win-title">Full-stack PWA scaffolding sprint</div>
+          <div class="big-win-desc">You drove a single focused session that took a PWA from zero to MVP, touching 65 TypeScript files alongside YAML configs, CSS, and JSON. Combining heavy Write usage (50 calls) with steady Edit and Read cycles shows you orchestrated greenfield creation and iterative refinement in one continuous flow.</div>
+        </div>
+      
+        <div class="big-win">
+          <div class="big-win-title">Bug diagnosis with regression tests</div>
+          <div class="big-win-desc">When series detail pages threw &apos;not found&apos; errors, you didn&apos;t just patch the symptom—you traced it to a URL encode/decode mismatch with colons in IDs, introduced a slug helper, and locked the fix in with 26 passing tests. This &apos;fix + harden&apos; pattern turned a frustrating bug into permanent coverage.</div>
+        </div>
+      
+        <div class="big-win">
+          <div class="big-win-title">Planning-first multi-goal execution</div>
+          <div class="big-win-desc">You juggled four distinct goals (documentation, features, bug fix, tests) in one session while leveraging ExitPlanMode and TodoWrite to stay organized. Even with SSR crashes from PouchDB and React 19 lint issues, you kept momentum and landed in &apos;mostly achieved&apos; territory.</div>
+        </div>
+      
+    </div>
+    
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title">What Helped Most (Claude's Capabilities)</div>
+        <div class="bar-row">
+        <div class="bar-label">Multi-file Changes</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#16a34a"></div></div>
+        <div class="bar-value">1</div>
+      </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Outcomes</div>
+        <div class="bar-row">
+        <div class="bar-label">Mostly Achieved</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#8b5cf6"></div></div>
+        <div class="bar-value">1</div>
+      </div>
+      </div>
+    </div>
+
+    
+    <h2 id="section-friction">Where Things Go Wrong</h2>
+    <p class="section-intro">Your 17-hour session shipped a working PWA with passing tests, but you hit avoidable friction from environment-specific bugs and encoding mismatches that surfaced only after the build.</p>
+    <div class="friction-categories">
+      
+        <div class="friction-category">
+          <div class="friction-title">SSR/environment compatibility blind spots</div>
+          <div class="friction-desc">You integrated browser-only libraries without guarding against server-side execution, leading to crashes on first build. Specifying your runtime constraints (SSR vs CSR, target framework version) upfront would let Claude pick compatible patterns or add guards proactively.</div>
+          <ul class="friction-examples"><li>PouchDB referenced `self` during SSR and crashed the initial build, requiring a fix-up pass after scaffolding</li><li>React 19 purity rules tripped lint warnings because the initial code wasn&apos;t written with the newer constraints in mind</li></ul>
+        </div>
+      
+        <div class="friction-category">
+          <div class="friction-title">Encoding/serialization mismatches in IDs</div>
+          <div class="friction-desc">Identifiers with special characters like colons caused a round-trip encode/decode bug that manifested as a user-facing &apos;not found&apos; error. Calling out ID formats and URL conventions early, or asking Claude to add a slug helper from the start, would prevent these from surfacing as bugs.</div>
+          <ul class="friction-examples"><li>Series IDs containing colons broke URL routing until a slug helper was retrofitted</li><li>The &apos;series-not-found&apos; bug required diagnosis time that could have been avoided with explicit encoding in the initial design</li></ul>
+        </div>
+      
+        <div class="friction-category">
+          <div class="friction-title">Heavy write-then-fix loop with no commits</div>
+          <div class="friction-desc">You ran a 17-hour session with 50 Writes, 43 Bash calls, and 28 Edits but zero commits, meaning rework piled on top of unversioned changes. Committing at milestones (scaffold done, bug fixed, tests passing) would give you rollback points and clearer progress markers.</div>
+          <ul class="friction-examples"><li>Two buggy-code friction events and one wrong-approach event accumulated in a single uncommitted working tree</li><li>MVP scaffold, SSR fix, slug helper, and 26 tests all landed without intermediate commits to isolate regressions</li></ul>
+        </div>
+      
+    </div>
+    
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title">Primary Friction Types</div>
+        <div class="bar-row">
+        <div class="bar-label">Buggy Code</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#dc2626"></div></div>
+        <div class="bar-value">2</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Wrong Approach</div>
+        <div class="bar-track"><div class="bar-fill" style="width:50%;background:#dc2626"></div></div>
+        <div class="bar-value">1</div>
+      </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Inferred Satisfaction (model-estimated)</div>
+        <div class="bar-row">
+        <div class="bar-label">Likely Satisfied</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#eab308"></div></div>
+        <div class="bar-value">2</div>
+      </div>
+      </div>
+    </div>
+
+    
+    
+    <h2 id="section-features">Existing CC Features to Try</h2>
+    <div class="claude-md-section">
+      <h3>Suggested CLAUDE.md Additions</h3>
+      <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">Just copy this into Claude Code to add it to your CLAUDE.md.</p>
+      <div class="claude-md-actions">
+        <button class="copy-all-btn" onclick="copyAllCheckedClaudeMd()">Copy All Checked</button>
+      </div>
+      
+        <div class="claude-md-item">
+          <input type="checkbox" id="cmd-0" class="cmd-checkbox" checked data-text="Add as a new top-level `## URL/Slug Handling` section in CLAUDE.md, near any existing routing or conventions guidance.\n\n## URL/Slug Handling
+- Always use the shared `slugify`/`unslugify` helpers when constructing or parsing route params
+- Never embed raw IDs containing `:` or other reserved URL chars in routes; encode via the slug helper first
+- Add a unit test for any new dynamic route covering encode→decode round-trip">
+          <label for="cmd-0">
+            <code class="cmd-code">## URL/Slug Handling
+- Always use the shared `slugify`/`unslugify` helpers when constructing or parsing route params
+- Never embed raw IDs containing `:` or other reserved URL chars in routes; encode via the slug helper first
+- Add a unit test for any new dynamic route covering encode→decode round-trip</code>
+            <button class="copy-btn" onclick="copyCmdItem(0)">Copy</button>
+          </label>
+          <div class="cmd-why">The session lost significant time to a URL encode/decode mismatch with colons in series IDs; codifying the slug helper convention prevents recurrence.</div>
+        </div>
+      
+        <div class="claude-md-item">
+          <input type="checkbox" id="cmd-1" class="cmd-checkbox" checked data-text="Add as a new `## SSR Safety` section under the framework/Next.js conventions area of CLAUDE.md.\n\n## SSR Safety
+- Any browser-only library (PouchDB, IndexedDB wrappers, window/self/document users) must be dynamically imported with `{ ssr: false }` or guarded behind `typeof window !== &apos;undefined&apos;`
+- When adding a new client-only dep, verify a clean `next build` before committing">
+          <label for="cmd-1">
+            <code class="cmd-code">## SSR Safety
+- Any browser-only library (PouchDB, IndexedDB wrappers, window/self/document users) must be dynamically imported with `{ ssr: false }` or guarded behind `typeof window !== &apos;undefined&apos;`
+- When adding a new client-only dep, verify a clean `next build` before committing</code>
+            <button class="copy-btn" onclick="copyCmdItem(1)">Copy</button>
+          </label>
+          <div class="cmd-why">The initial build crashed in SSR because PouchDB referenced `self`; a standing rule would have caught this before the build broke.</div>
+        </div>
+      
+        <div class="claude-md-item">
+          <input type="checkbox" id="cmd-2" class="cmd-checkbox" checked data-text="Add under an existing `## Testing` or `## Code Quality` section, or create `## React 19 / Lint` if none exists.\n\n## React 19 / Lint
+- Keep render functions pure: no side effects, no ref mutations, no subscriptions during render
+- Run `npm run lint` after any component change and fix React 19 purity warnings before moving on">
+          <label for="cmd-2">
+            <code class="cmd-code">## React 19 / Lint
+- Keep render functions pure: no side effects, no ref mutations, no subscriptions during render
+- Run `npm run lint` after any component change and fix React 19 purity warnings before moving on</code>
+            <button class="copy-btn" onclick="copyCmdItem(2)">Copy</button>
+          </label>
+          <div class="cmd-why">Lint flagged React 19 purity issues during the session; making this an explicit always-run rule avoids repeat cleanup cycles.</div>
+        </div>
+      
+    </div>
+    
+    
+    <p style="font-size: 13px; color: #64748b; margin-bottom: 12px;">Just copy this into Claude Code and it'll set it up for you.</p>
+    <div class="features-section">
+      
+        <div class="feature-card">
+          <div class="feature-title">Hooks</div>
+          <div class="feature-oneliner">Shell commands that auto-run at specific Claude Code lifecycle events.</div>
+          <div class="feature-why"><strong>Why for you:</strong> Your session had SSR build crashes and lint failures discovered late; a post-edit hook running `next build`/`lint` would surface these immediately instead of after manual checks.</div>
+          
+          <div class="feature-examples">
+            <div class="feature-example">
+              <div class="example-code-row">
+                <code class="example-code">// .claude/settings.json
+{
+  &quot;hooks&quot;: {
+    &quot;PostToolUse&quot;: [
+      {
+        &quot;matcher&quot;: &quot;Edit|Write&quot;,
+        &quot;hooks&quot;: [
+          { &quot;type&quot;: &quot;command&quot;, &quot;command&quot;: &quot;npm run lint --silent &amp;&amp; npx tsc --noEmit&quot; }
+        ]
+      }
+    ]
+  }
+}</code>
+                <button class="copy-btn" onclick="copyText(this)">Copy</button>
+              </div>
+            </div>
+          </div>
+          
+        </div>
+      
+        <div class="feature-card">
+          <div class="feature-title">Custom Skills</div>
+          <div class="feature-oneliner">Reusable prompts as markdown files invoked with a single /command.</div>
+          <div class="feature-why"><strong>Why for you:</strong> You scaffolded a PWA + tests in one long session; a `/scaffold-route` or `/add-test` skill would standardize slug helpers, SSR guards, and test patterns for future routes.</div>
+          
+          <div class="feature-examples">
+            <div class="feature-example">
+              <div class="example-code-row">
+                <code class="example-code"># .claude/skills/add-route/SKILL.md
+When adding a new dynamic route:
+1. Use `slugify(id)` for the URL and `unslugify(param)` in the loader
+2. If the page uses PouchDB or any browser-only lib, dynamic import with { ssr: false }
+3. Add a Vitest covering: route renders, slug round-trip, not-found case
+4. Run `npm run lint &amp;&amp; npm test` before reporting done</code>
+                <button class="copy-btn" onclick="copyText(this)">Copy</button>
+              </div>
+            </div>
+          </div>
+          
+        </div>
+      
+        <div class="feature-card">
+          <div class="feature-title">Headless Mode</div>
+          <div class="feature-oneliner">Run Claude non-interactively from scripts and CI/CD.</div>
+          <div class="feature-why"><strong>Why for you:</strong> With 26 tests now passing, you can wire `claude -p` into CI to auto-triage failing tests or lint regressions on PRs without manual intervention.</div>
+          
+          <div class="feature-examples">
+            <div class="feature-example">
+              <div class="example-code-row">
+                <code class="example-code">claude -p &quot;run npm test, if any fail propose minimal fixes and open a patch&quot; --allowedTools &quot;Bash,Read,Edit&quot;</code>
+                <button class="copy-btn" onclick="copyText(this)">Copy</button>
+              </div>
+            </div>
+          </div>
+          
+        </div>
+      
+    </div>
+    
+    
+    <h2 id="section-patterns">New Ways to Use Claude Code</h2>
+    <p style="font-size: 13px; color: #64748b; margin-bottom: 12px;">Just copy this into Claude Code and it'll walk you through it.</p>
+    <div class="patterns-section">
+      
+        <div class="pattern-card">
+          <div class="pattern-title">Front-load environment checks for new scaffolds</div>
+          <div class="pattern-summary">When scaffolding a new app, verify SSR/build/lint compatibility of each dep before wiring it up.</div>
+          <div class="pattern-detail">Your 17-hour session lost time to PouchDB&apos;s `self` reference crashing SSR and React 19 lint purity issues — both discoverable in minutes with a smoke build. Ask Claude to do a compatibility pass on new deps before integration, especially in Next.js + React 19 + browser-storage stacks. This shifts diagnosis left and avoids mid-feature pivots.</div>
+          
+          <div class="copyable-prompt-section">
+            <div class="prompt-label">Paste into Claude Code:</div>
+            <div class="copyable-prompt-row">
+              <code class="copyable-prompt">Before integrating these dependencies into the Next.js app, do a compatibility audit: for each dep, check (1) SSR safety — does it reference window/self/document? (2) React 19 compatibility — any known purity or concurrent-render issues? (3) recommended import pattern (dynamic, client-only). Output a table and propose the integration approach for each before writing code.</code>
+              <button class="copy-btn" onclick="copyText(this)">Copy</button>
+            </div>
+          </div>
+          
+        </div>
+      
+        <div class="pattern-card">
+          <div class="pattern-title">Establish URL/ID conventions up front</div>
+          <div class="pattern-summary">Define slug encode/decode helpers and route param contracts before building dynamic routes.</div>
+          <div class="pattern-detail">The series-not-found bug stemmed from colons in IDs surviving into URLs and round-tripping incorrectly. A 5-minute design decision on ID→slug mapping, with a shared helper and round-trip test, would have prevented the whole debug cycle. Make this the first step for any entity that gets a detail page.</div>
+          
+          <div class="copyable-prompt-section">
+            <div class="prompt-label">Paste into Claude Code:</div>
+            <div class="copyable-prompt-row">
+              <code class="copyable-prompt">Audit all dynamic routes in this app. For each, identify the ID format, how it&apos;s encoded into the URL, how it&apos;s decoded in the loader, and whether there&apos;s a round-trip test. Propose a single shared slugify/unslugify helper and a test pattern, then refactor existing routes to use it.</code>
+              <button class="copy-btn" onclick="copyText(this)">Copy</button>
+            </div>
+          </div>
+          
+        </div>
+      
+        <div class="pattern-card">
+          <div class="pattern-title">Use TodoWrite + plan mode for long sessions</div>
+          <div class="pattern-summary">Your 17-hour session used TodoWrite 8 times and ExitPlanMode twice — lean harder on planning for multi-goal sessions.</div>
+          <div class="pattern-detail">You combined scaffolding, bug fix, and test writing in one session (4 distinct goals). Explicit planning at each goal boundary keeps Claude from drifting and makes outcomes auditable. Consider opening each new goal with an explicit plan-mode prompt so scope is locked before changes land.</div>
+          
+          <div class="copyable-prompt-section">
+            <div class="prompt-label">Paste into Claude Code:</div>
+            <div class="copyable-prompt-row">
+              <code class="copyable-prompt">Enter plan mode. I want to tackle three things in order: (1) fix the series-not-found bug with a regression test, (2) add a slug helper used by all dynamic routes, (3) backfill tests to &gt;80% coverage on routing. Produce a plan with file-level changes and test list for each, then wait for approval before editing.</code>
+              <button class="copy-btn" onclick="copyText(this)">Copy</button>
+            </div>
+          </div>
+          
+        </div>
+      
+    </div>
+    
+    
+
+    
+    <h2 id="section-horizon">On the Horizon</h2>
+    <p class="section-intro">Your 17-hour TiDaTra PWA session shows you&apos;re already orchestrating Claude across scaffolding, debugging, and testing—next, let Claude drive entire feature lifecycles autonomously while you review.</p>
+    <div class="horizon-section">
+      
+        <div class="horizon-card">
+          <div class="horizon-title">Autonomous Bug-Hunt Test Harness</div>
+          <div class="horizon-possible">Instead of waiting for users to report bugs like the URL encoding mismatch, deploy a Claude agent that continuously fuzzes routes, IDs, and edge cases against your PWA, generating failing tests for any inconsistency it finds. The agent then proposes fixes, runs the full test suite, and opens PRs only when all 26+ tests still pass plus the new regression test is green.</div>
+          <div class="horizon-tip"><strong>Getting started:</strong> Use Claude Code in headless mode (`claude -p`) on a cron with a Vitest/Playwright harness, and have it write findings to a GitHub issue queue via the `gh` CLI.</div>
+          <div class="pattern-prompt"><div class="prompt-label">Paste into Claude Code:</div><code>You are a continuous QA agent for my TiDaTra PWA. (1) Read the routing config and identify every dynamic route param (e.g., series IDs with colons, slugs, encoded chars). (2) Generate a property-based test suite using fast-check + Vitest that fuzzes 200+ inputs per route, including URL-encoded edge cases, empty strings, and Unicode. (3) Run the suite and for each failure: reproduce it, write a minimal failing test, diagnose root cause, implement a fix touching minimal files, and verify ALL existing tests still pass. (4) Commit each fix on its own branch with a descriptive message and open a PR via `gh pr create`. Report a summary table of bugs found, fixed, and any you couldn&apos;t resolve.</code><button class="copy-btn" onclick="copyText(this)">Copy</button></div>
+        </div>
+      
+        <div class="horizon-card">
+          <div class="horizon-title">Parallel Feature Branch Agents</div>
+          <div class="horizon-possible">Your session shows one feature at a time, but you could spawn 3-5 Claude subagents in git worktrees, each implementing a different PWA feature (offline sync, push notifications, theme switcher) in parallel. Each agent writes tests first, implements until green, and self-reviews against your existing TypeScript patterns before merging.</div>
+          <div class="horizon-tip"><strong>Getting started:</strong> Use `git worktree add` plus the Claude Agent SDK&apos;s subagent feature, or launch parallel `claude -p` processes with isolated working directories and a shared CLAUDE.md style guide.</div>
+          <div class="pattern-prompt"><div class="prompt-label">Paste into Claude Code:</div><code>I want to implement 4 features in parallel for my TiDaTra PWA: (a) offline-first PouchDB sync with conflict resolution, (b) Web Push notifications for new series, (c) a dark/light/system theme toggle persisted in IndexedDB, (d) a keyboard shortcut palette (Cmd+K). For each feature: create a git worktree at ../tidatra-{feature}, spawn a subagent that (1) writes a design doc to docs/, (2) writes failing Vitest + Playwright tests, (3) implements until all tests pass and lint is clean (watch for React 19 purity rules and SSR `self` issues like we hit before), (4) self-reviews the diff against existing TypeScript patterns. Report back with a status table and links to each worktree&apos;s branch.</code><button class="copy-btn" onclick="copyText(this)">Copy</button></div>
+        </div>
+      
+        <div class="horizon-card">
+          <div class="horizon-title">Spec-Driven Iteration Loop</div>
+          <div class="horizon-possible">Rather than diagnosing bugs reactively after MVP, write executable specs (Gherkin or TypeScript contracts) up front and let Claude iterate against them autonomously until 100% pass. The agent loops: run specs → analyze failures → patch code → re-run, with no human in the loop until the full suite is green or it&apos;s stuck after N attempts.</div>
+          <div class="horizon-tip"><strong>Getting started:</strong> Combine Cucumber.js or Vitest with a Claude Code loop script that re-invokes the agent on each red test, capping iterations and escalating with a summary if blocked.</div>
+          <div class="pattern-prompt"><div class="prompt-label">Paste into Claude Code:</div><code>Here is a spec file (specs/series.feature) describing 30 behaviors for the TiDaTra series module, including URL encoding with colons, slug generation, 404 handling, and PouchDB SSR safety. Your job: (1) Run `npm test specs/`. (2) For every failing scenario, read the relevant source, propose a minimal fix, apply it, and re-run ONLY that scenario. (3) Once it passes, run the full suite to check for regressions. (4) Loop until all 30 scenarios pass or you&apos;ve made 15 attempts on a single scenario. (5) If stuck, write a detailed diagnostic to BLOCKED.md with hypotheses, files inspected, and what you&apos;d try next. Use TodoWrite to track progress across scenarios and commit after every 5 green tests.</code><button class="copy-btn" onclick="copyText(this)">Copy</button></div>
+        </div>
+      
+    </div>
+    
+
+    
+    <div class="fun-ending">
+      <div class="fun-headline">"The colon that broke the PWA: a URL encoding mismatch turned every series into a &apos;not found&apos; ghost"</div>
+      <div class="fun-detail">While building the TiDaTra PWA, Claude hit a classic gotcha — series IDs containing colons were being encoded one way and decoded another, making every detail page claim the series didn&apos;t exist. The fix? A humble slug helper, followed by 26 passing tests to make sure the colons never haunted them again.</div>
+    </div>
+    
+
+    
+  </div>
+  <script>
+    function toggleCollapsible(header) {
+      header.classList.toggle('open');
+      const content = header.nextElementSibling;
+      content.classList.toggle('open');
+    }
+    function copyText(btn) {
+      const code = btn.previousElementSibling;
+      navigator.clipboard.writeText(code.textContent).then(() => {
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+    function copyCmdItem(idx) {
+      const checkbox = document.getElementById('cmd-' + idx);
+      if (checkbox) {
+        const text = checkbox.dataset.text;
+        navigator.clipboard.writeText(text).then(() => {
+          const btn = checkbox.nextElementSibling.querySelector('.copy-btn');
+          if (btn) { btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = 'Copy'; }, 2000); }
+        });
+      }
+    }
+    function copyAllCheckedClaudeMd() {
+      const checkboxes = document.querySelectorAll('.cmd-checkbox:checked');
+      const texts = [];
+      checkboxes.forEach(cb => {
+        if (cb.dataset.text) { texts.push(cb.dataset.text); }
+      });
+      const combined = texts.join('\n');
+      const btn = document.querySelector('.copy-all-btn');
+      if (btn) {
+        navigator.clipboard.writeText(combined).then(() => {
+          btn.textContent = 'Copied ' + texts.length + ' items!';
+          btn.classList.add('copied');
+          setTimeout(() => { btn.textContent = 'Copy All Checked'; btn.classList.remove('copied'); }, 2000);
+        });
+      }
+    }
+    // Timezone selector for time of day chart (data is from our own analytics, not user input)
+    const rawHourCounts = {"7":1,"8":1,"14":4,"15":1};
+    function updateHourHistogram(offsetFromPT) {
+      const periods = [
+        { label: "Morning (6-12)", range: [6,7,8,9,10,11] },
+        { label: "Afternoon (12-18)", range: [12,13,14,15,16,17] },
+        { label: "Evening (18-24)", range: [18,19,20,21,22,23] },
+        { label: "Night (0-6)", range: [0,1,2,3,4,5] }
+      ];
+      const adjustedCounts = {};
+      for (const [hour, count] of Object.entries(rawHourCounts)) {
+        const newHour = (parseInt(hour) + offsetFromPT + 24) % 24;
+        adjustedCounts[newHour] = (adjustedCounts[newHour] || 0) + count;
+      }
+      const periodCounts = periods.map(p => ({
+        label: p.label,
+        count: p.range.reduce((sum, h) => sum + (adjustedCounts[h] || 0), 0)
+      }));
+      const maxCount = Math.max(...periodCounts.map(p => p.count)) || 1;
+      const container = document.getElementById('hour-histogram');
+      container.textContent = '';
+      periodCounts.forEach(p => {
+        const row = document.createElement('div');
+        row.className = 'bar-row';
+        const label = document.createElement('div');
+        label.className = 'bar-label';
+        label.textContent = p.label;
+        const track = document.createElement('div');
+        track.className = 'bar-track';
+        const fill = document.createElement('div');
+        fill.className = 'bar-fill';
+        fill.style.width = (p.count / maxCount) * 100 + '%';
+        fill.style.background = '#8b5cf6';
+        track.appendChild(fill);
+        const value = document.createElement('div');
+        value.className = 'bar-value';
+        value.textContent = p.count;
+        row.appendChild(label);
+        row.appendChild(track);
+        row.appendChild(value);
+        container.appendChild(row);
+      });
+    }
+    document.getElementById('timezone-select').addEventListener('change', function() {
+      const customInput = document.getElementById('custom-offset');
+      if (this.value === 'custom') {
+        customInput.style.display = 'inline-block';
+        customInput.focus();
+      } else {
+        customInput.style.display = 'none';
+        updateHourHistogram(parseInt(this.value));
+      }
+    });
+    document.getElementById('custom-offset').addEventListener('change', function() {
+      const parsed = parseInt(this.value, 10);
+      if (isNaN(parsed)) return;
+      updateHourHistogram(parsed + 8);
+    });
+  </script>
+</body>
+</html>

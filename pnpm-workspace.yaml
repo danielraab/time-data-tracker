@@ -1,6 +1,10 @@
 allowBuilds:
+  leveldown: false
+  msw: false
   sharp: true
   unrs-resolver: true
 ignoredBuiltDependencies:
+  - leveldown
+  - msw
   - sharp
   - unrs-resolver

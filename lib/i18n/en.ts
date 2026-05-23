@@ -1,0 +1,78 @@
+/**
+ * Central UI string table. Keep all user-facing copy here so additional
+ * locales can be added later without touching components.
+ */
+export const t = {
+  app: {
+    name: "TiDaTra",
+    tagline: "Time & Data Tracker",
+  },
+  common: {
+    save: "Save",
+    cancel: "Cancel",
+    delete: "Delete",
+    edit: "Edit",
+    add: "Add",
+    back: "Back",
+    confirmDelete: "Are you sure? This cannot be undone.",
+    loading: "Loading…",
+    optional: "optional",
+  },
+  dashboard: {
+    title: "Your time series",
+    newSeries: "New time series",
+    searchPlaceholder: "Search by name…",
+    filterByTags: "Filter by tags",
+    clearFilters: "Clear filters",
+    empty: "No time series yet. Create your first one to start tracking.",
+    noMatches: "No time series match your filters.",
+    entryCount: (n: number) => `${n} ${n === 1 ? "entry" : "entries"}`,
+    openSpan: "Open duration",
+  },
+  series: {
+    createTitle: "New time series",
+    titleLabel: "Title",
+    titlePlaceholder: "e.g. Morning runs",
+    descriptionLabel: "Description",
+    descriptionPlaceholder: "What is this series about?",
+    tagsLabel: "Tags",
+    tagsPlaceholder: "Type a tag and press Enter",
+    create: "Create series",
+    deleteSeries: "Delete series",
+    notFound: "This time series could not be found.",
+    untitled: "Untitled series",
+  },
+  entries: {
+    heading: "Entries",
+    addEntry: "Add entry",
+    empty: "No entries yet. Add one or click the timeline above.",
+    typeLabel: "Type",
+    timeLabel: "Time",
+    now: "Now",
+    labelLabel: "Label",
+    valueLabel: "Value",
+    addLocation: "Add location",
+    locationAdded: "Location captured",
+    locationUnavailable: "Location unavailable",
+    openSpanNote: "Open duration — not yet closed.",
+    closeSpan: "End duration",
+    types: {
+      point_label: "Point · Label",
+      point_number: "Point · Number",
+      span_start: "Duration start",
+      span_end: "Duration end",
+    } satisfies Record<string, string>,
+    typeHints: {
+      point_label: "A moment in time with a text label.",
+      point_number: "A moment in time with a numeric value.",
+      span_start: "Begins a duration. Its label names the duration.",
+      span_end: "Ends an open duration.",
+    } satisfies Record<string, string>,
+  },
+  timeline: {
+    heading: "Timeline",
+    empty: "Add entries to see them on the timeline.",
+    clickHint: "Click the timeline to add an entry at that time.",
+    now: "now",
+  },
+} as const;
