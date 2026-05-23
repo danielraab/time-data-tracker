@@ -80,7 +80,14 @@ export const t = {
   timeline: {
     heading: "Timeline",
     empty: "Add entries to see them on the timeline.",
-    clickHint: "Click the timeline to add an entry at that time.",
+    emptyDay: "No entries on this day.",
+    clickHint: "Tap a time to add an entry there.",
     now: "now",
+    prevDay: "Previous day",
+    nextDay: "Next day",
+    today: "Today",
+    yesterday: "Yesterday",
+    tomorrow: "Tomorrow",
+    jumpToToday: "Today",
   },
 } as const;

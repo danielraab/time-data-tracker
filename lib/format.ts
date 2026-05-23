@@ -1,5 +1,10 @@
 import { format, formatDistanceStrict } from "date-fns";
 
+/** Long, locale-friendly day label, e.g. "Saturday, May 23". */
+export function formatDayLabel(date: Date): string {
+  return format(date, "EEEE, MMM d");
+}
+
 export function formatDateTime(iso: string): string {
   return format(new Date(iso), "PP · HH:mm");
 }

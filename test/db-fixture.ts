@@ -4,7 +4,6 @@
  * use this instance unchanged — no mocking needed.
  */
 import PouchDB from "pouchdb";
-// @ts-expect-error - no bundled types for this plugin
 import memoryAdapter from "pouchdb-adapter-memory";
 import findPlugin from "pouchdb-find";
 import { _setDbForTests } from "@/lib/db/pouch";
