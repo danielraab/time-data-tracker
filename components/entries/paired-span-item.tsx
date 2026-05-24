@@ -9,6 +9,7 @@ import {
   Pencil,
   Play,
   Trash2,
+  TriangleAlert,
   X,
 } from "lucide-react";
 import { LocationMapModal } from "./location-map-modal";
@@ -87,9 +88,14 @@ export function PairedSpanItem({ start, end }: PairedSpanItemProps) {
   }
 
   const gps = start.gps ?? end.gps;
+  const isReversed = end.timestamp < start.timestamp;
 
   return (
-    <li className="rounded-lg border border-border bg-card p-3">
+    <li
+      className={`rounded-lg border bg-card p-3 ${
+        isReversed ? "border-destructive" : "border-border"
+      }`}
+    >
       <div className="flex items-start gap-3">
         <div className="mt-1 text-muted-foreground">
           <Play className="size-4" />
@@ -105,6 +111,12 @@ export function PairedSpanItem({ start, end }: PairedSpanItemProps) {
             <Badge variant="outline" className="font-normal">
               {formatDurationBetween(start.timestamp, end.timestamp)}
             </Badge>
+            {isReversed && (
+              <span className="inline-flex items-center gap-1 text-xs text-destructive font-medium">
+                <TriangleAlert className="size-3" />
+                {t.entries.reversedSpan}
+              </span>
+            )}
             {gps && (
               <>
                 <button

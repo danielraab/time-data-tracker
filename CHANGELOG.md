@@ -6,11 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-05-24
+
 ### Added
 
 - **Quick-add entry from dashboard**: an "Add entry" button in the dashboard header opens
   a modal where the target series is selected via a dropdown, then the full entry form is
   presented inline — no need to navigate into a series first.
+- **Reversed-duration warning**: paired duration entries whose end timestamp is earlier
+  than the start timestamp are highlighted with a red border and a ⚠ "End is before start"
+  label so data errors are immediately visible in the entry list.
 
 ### Changed
 
@@ -68,6 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   to `master`.
 - **App footer**: displays the current app version and a link to the GitHub repository.
 
-[Unreleased]: https://github.com/draab/time-data-tracker/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/draab/time-data-tracker/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/draab/time-data-tracker/compare/v0.2.0...v0.3.0
 [0.1.1]: https://github.com/draab/time-data-tracker/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/draab/time-data-tracker/releases/tag/v0.1.0
