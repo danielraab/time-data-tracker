@@ -1,5 +1,3 @@
-
-
 # TiDaTra – Agent Guide
 
 Project-specific guidance for AI agents and contributors. The Next.js docs index below is
@@ -65,7 +63,7 @@ TiDaTra (Time & Data Tracker) is an **offline-first PWA** for recording time ser
 
 ## Commands
 
-- `pnpm dev` — dev server  ·  `pnpm build` — production build  ·  `pnpm lint` — ESLint
+- `pnpm dev` — dev server · `pnpm build` — production build · `pnpm lint` — ESLint
 - Run `pnpm lint` before considering a change complete.
 
 ## Testing
