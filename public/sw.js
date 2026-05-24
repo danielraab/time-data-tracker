@@ -36,23 +36,31 @@ self.addEventListener("fetch", (event) => {
           return response;
         })
         .catch(() =>
-          caches.match(request).then((cached) => cached || caches.match("/")),
+          // ignoreVary so prefetch-cached responses are found for direct navigations.
+          caches
+            .match(request, { ignoreVary: true })
+            .then((cached) => cached || caches.match("/")),
         ),
     );
     return;
   }
 
-  // Static assets: cache-first, populate the cache on miss.
+  // Static assets and RSC payloads: cache-first, populate on miss.
+  // ignoreVary: true ensures Next.js RSC prefetch responses (Vary: Next-Router-Prefetch)
+  // are reused when the same URL is fetched without the prefetch header.
   event.respondWith(
-    caches.match(request).then((cached) => {
+    caches.match(request, { ignoreVary: true }).then(async (cached) => {
       if (cached) return cached;
-      return fetch(request).then((response) => {
+      try {
+        const response = await fetch(request);
         if (response.ok) {
           const copy = response.clone();
           caches.open(CACHE).then((cache) => cache.put(request, copy));
         }
         return response;
-      });
+      } catch {
+        return new Response(null, { status: 503 });
+      }
     }),
   );
 });
