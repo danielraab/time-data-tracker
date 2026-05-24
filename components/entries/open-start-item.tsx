@@ -11,6 +11,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { LocationMapModal } from "./location-map-modal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,11 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  createEntry,
-  deleteEntry,
-  updateEntry,
-} from "@/lib/db/entries-repo";
+import { createEntry, deleteEntry, updateEntry } from "@/lib/db/entries-repo";
 import {
   formatDateTime,
   fromDateTimeLocal,
@@ -45,6 +42,7 @@ interface OpenStartItemProps {
 
 export function OpenStartItem({ entry, allEntries }: OpenStartItemProps) {
   const [editing, setEditing] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
   const [timeLocal, setTimeLocal] = useState(toDateTimeLocal(entry.timestamp));
   const [label, setLabel] = useState(entry.label ?? "");
   const [linkedEndId, setLinkedEndId] = useState(NO_LINK);
@@ -125,10 +123,21 @@ export function OpenStartItem({ entry, allEntries }: OpenStartItemProps) {
               {t.entries.openSpanNote}
             </Badge>
             {entry.gps && (
-              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                <MapPin className="size-3" />
-                {entry.gps.lat.toFixed(3)}, {entry.gps.lng.toFixed(3)}
-              </span>
+              <>
+                <button
+                  type="button"
+                  onClick={() => setMapOpen(true)}
+                  className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                >
+                  <MapPin className="size-3" />
+                  {entry.gps.lat.toFixed(3)}, {entry.gps.lng.toFixed(3)}
+                </button>
+                <LocationMapModal
+                  gps={entry.gps}
+                  open={mapOpen}
+                  onOpenChange={setMapOpen}
+                />
+              </>
             )}
           </div>
 
@@ -158,7 +167,9 @@ export function OpenStartItem({ entry, allEntries }: OpenStartItemProps) {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value={NO_LINK}>{t.entries.noLink}</SelectItem>
+                      <SelectItem value={NO_LINK}>
+                        {t.entries.noLink}
+                      </SelectItem>
                       {candidateEnds.map((end) => (
                         <SelectItem key={end._id} value={end._id}>
                           {end.label || t.entries.types.span_end} ·{" "}
@@ -223,4 +234,3 @@ export function OpenStartItem({ entry, allEntries }: OpenStartItemProps) {
     </li>
   );
 }
-

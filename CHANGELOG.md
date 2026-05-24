@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **GPS location map**: entries that have a recorded GPS location now show a clickable
+  pin badge. Clicking it opens a modal with an embedded OpenStreetMap view centred on
+  the coordinates, an accuracy indicator, and an "Open in OpenStreetMap" link. Applies
+  to all entry types (point, paired span, open start, orphan end).
+
 ## [0.1.1] - 2026-05-24
 
 ### Fixed

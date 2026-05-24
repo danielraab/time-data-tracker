@@ -11,6 +11,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { LocationMapModal } from "./location-map-modal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +33,7 @@ interface PairedSpanItemProps {
 
 export function PairedSpanItem({ start, end }: PairedSpanItemProps) {
   const [editing, setEditing] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
   const [startLocal, setStartLocal] = useState(
     toDateTimeLocal(start.timestamp),
   );
@@ -104,10 +106,21 @@ export function PairedSpanItem({ start, end }: PairedSpanItemProps) {
               {formatDurationBetween(start.timestamp, end.timestamp)}
             </Badge>
             {gps && (
-              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                <MapPin className="size-3" />
-                {gps.lat.toFixed(3)}, {gps.lng.toFixed(3)}
-              </span>
+              <>
+                <button
+                  type="button"
+                  onClick={() => setMapOpen(true)}
+                  className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                >
+                  <MapPin className="size-3" />
+                  {gps.lat.toFixed(3)}, {gps.lng.toFixed(3)}
+                </button>
+                <LocationMapModal
+                  gps={gps}
+                  open={mapOpen}
+                  onOpenChange={setMapOpen}
+                />
+              </>
             )}
           </div>
 

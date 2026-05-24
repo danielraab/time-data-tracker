@@ -10,6 +10,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { LocationMapModal } from "./location-map-modal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +41,7 @@ interface OrphanEndItemProps {
 
 export function OrphanEndItem({ entry, allEntries }: OrphanEndItemProps) {
   const [editing, setEditing] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
   const [timeLocal, setTimeLocal] = useState(toDateTimeLocal(entry.timestamp));
   const [label, setLabel] = useState(entry.label ?? "");
   const [linkedStartId, setLinkedStartId] = useState(NO_LINK);
@@ -102,10 +104,21 @@ export function OrphanEndItem({ entry, allEntries }: OrphanEndItemProps) {
               {t.entries.orphanEndNote}
             </Badge>
             {entry.gps && (
-              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                <MapPin className="size-3" />
-                {entry.gps.lat.toFixed(3)}, {entry.gps.lng.toFixed(3)}
-              </span>
+              <>
+                <button
+                  type="button"
+                  onClick={() => setMapOpen(true)}
+                  className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                >
+                  <MapPin className="size-3" />
+                  {entry.gps.lat.toFixed(3)}, {entry.gps.lng.toFixed(3)}
+                </button>
+                <LocationMapModal
+                  gps={entry.gps}
+                  open={mapOpen}
+                  onOpenChange={setMapOpen}
+                />
+              </>
             )}
           </div>
 
@@ -138,7 +151,9 @@ export function OrphanEndItem({ entry, allEntries }: OrphanEndItemProps) {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value={NO_LINK}>{t.entries.noLink}</SelectItem>
+                      <SelectItem value={NO_LINK}>
+                        {t.entries.noLink}
+                      </SelectItem>
                       {candidateStarts.map((start) => (
                         <SelectItem key={start._id} value={start._id}>
                           {start.label || t.entries.types.span_start} ·{" "}

@@ -66,6 +66,9 @@ export const t = {
     noStartCandidates: "No starts available before this time.",
     noEndCandidates: "No ends available after this time.",
     pairedRange: "Duration",
+    locationMap: "Location on map",
+    openInOsm: "Open in OpenStreetMap",
+    accuracy: (m: number) => `±${m} m`,
     types: {
       point_label: "Point · Label",
       point_number: "Point · Number",

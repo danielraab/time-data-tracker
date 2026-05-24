@@ -10,6 +10,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { LocationMapModal } from "./location-map-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { deleteEntry, updateEntry } from "@/lib/db/entries-repo";
@@ -24,6 +25,7 @@ import type { Entry } from "@/lib/types";
 export function PointItem({ entry }: { entry: Entry }) {
   const isNumber = entry.entryType === "point_number";
   const [editing, setEditing] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
   const [timeLocal, setTimeLocal] = useState(toDateTimeLocal(entry.timestamp));
   const [label, setLabel] = useState(entry.label ?? "");
   const [valueText, setValueText] = useState(
@@ -79,10 +81,21 @@ export function PointItem({ entry }: { entry: Entry }) {
               {formatDateTime(entry.timestamp)}
             </span>
             {entry.gps && (
-              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                <MapPin className="size-3" />
-                {entry.gps.lat.toFixed(3)}, {entry.gps.lng.toFixed(3)}
-              </span>
+              <>
+                <button
+                  type="button"
+                  onClick={() => setMapOpen(true)}
+                  className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                >
+                  <MapPin className="size-3" />
+                  {entry.gps.lat.toFixed(3)}, {entry.gps.lng.toFixed(3)}
+                </button>
+                <LocationMapModal
+                  gps={entry.gps}
+                  open={mapOpen}
+                  onOpenChange={setMapOpen}
+                />
+              </>
             )}
           </div>
 
