@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { MapPin } from "lucide-react";
+import { Dot, Hash, MapPin, Play, Square, Timer, Type } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -61,13 +61,6 @@ export function AddEntryDialog(props: AddEntryDialogProps) {
     </Dialog>
   );
 }
-
-const TYPES: EntryType[] = [
-  "point_label",
-  "point_number",
-  "span_start",
-  "span_end",
-];
 
 interface AddEntryFormProps {
   seriesId: string;
@@ -149,9 +142,7 @@ function AddEntryForm({
         value: numericValue,
         gps,
         startEntryId:
-          entryType === "span_end" && linkedStartId
-            ? linkedStartId
-            : undefined,
+          entryType === "span_end" && linkedStartId ? linkedStartId : undefined,
       });
       onClose();
     } finally {
@@ -159,8 +150,7 @@ function AddEntryForm({
     }
   }
 
-  const showLabelField = entryType !== "point_number";
-  const showValueField = entryType === "point_number";
+  const isPoint = entryType === "point_label" || entryType === "point_number";
   const showLinkField = entryType === "span_end";
 
   return (
@@ -171,25 +161,42 @@ function AddEntryForm({
       </DialogHeader>
 
       <div className="space-y-4">
+        {/* Main type toggle: Point | Duration */}
         <div className="space-y-2">
-          <Label htmlFor="entry-type">{t.entries.typeLabel}</Label>
-          <Select
-            value={entryType}
-            onValueChange={(v) => setEntryType(v as EntryType)}
-          >
-            <SelectTrigger id="entry-type">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {TYPES.map((type) => (
-                <SelectItem key={type} value={type}>
-                  {t.entries.types[type]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Label>{t.entries.typeLabel}</Label>
+          <div className="inline-flex rounded-md border overflow-hidden">
+            <button
+              type="button"
+              className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium transition-colors ${
+                isPoint
+                  ? "bg-primary text-primary-foreground"
+                  : "hover:bg-muted"
+              }`}
+              onClick={() => {
+                if (!isPoint) setEntryType("point_label");
+              }}
+            >
+              <Dot className="size-4" />
+              {t.entries.modePoint}
+            </button>
+            <button
+              type="button"
+              className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium transition-colors border-l ${
+                !isPoint
+                  ? "bg-primary text-primary-foreground"
+                  : "hover:bg-muted"
+              }`}
+              onClick={() => {
+                if (isPoint) setEntryType("span_start");
+              }}
+            >
+              <Timer className="size-4" />
+              {t.entries.modeDuration}
+            </button>
+          </div>
         </div>
 
+        {/* Time field */}
         <div className="space-y-2">
           <Label htmlFor="entry-time">{t.entries.timeLabel}</Label>
           <div className="flex gap-2">
@@ -206,33 +213,105 @@ function AddEntryForm({
           </div>
         </div>
 
-        {showLabelField && (
-          <div className="space-y-2">
-            <Label htmlFor="entry-label">
-              {t.entries.labelLabel}{" "}
-              <span className="text-xs text-muted-foreground">
-                ({t.common.optional})
-              </span>
-            </Label>
-            <Input
-              id="entry-label"
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
-            />
+        {/* Point: Text/Number sub-toggle + input */}
+        {isPoint && (
+          <div className="flex gap-2 items-end">
+            <div className="inline-flex rounded-md border overflow-hidden shrink-0 self-end">
+              <button
+                type="button"
+                className={`flex items-center gap-1 px-2.5 py-2 text-xs font-medium transition-colors ${
+                  entryType === "point_label"
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-muted"
+                }`}
+                onClick={() => setEntryType("point_label")}
+              >
+                <Type className="size-3" />
+                {t.entries.subText}
+              </button>
+              <button
+                type="button"
+                className={`flex items-center gap-1 px-2.5 py-2 text-xs font-medium transition-colors border-l ${
+                  entryType === "point_number"
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-muted"
+                }`}
+                onClick={() => setEntryType("point_number")}
+              >
+                <Hash className="size-3" />
+                {t.entries.subNumber}
+              </button>
+            </div>
+            <div className="flex flex-col gap-2 flex-1">
+              <Label htmlFor="entry-point-input">
+                {entryType === "point_label"
+                  ? t.entries.labelLabel
+                  : t.entries.valueLabel}
+                {entryType === "point_label" && (
+                  <span className="text-xs text-muted-foreground">
+                    {" "}
+                    ({t.common.optional})
+                  </span>
+                )}
+              </Label>
+              <Input
+                id="entry-point-input"
+                type={entryType === "point_number" ? "number" : "text"}
+                inputMode={entryType === "point_number" ? "decimal" : undefined}
+                value={entryType === "point_number" ? valueText : label}
+                onChange={(e) =>
+                  entryType === "point_number"
+                    ? setValueText(e.target.value)
+                    : setLabel(e.target.value)
+                }
+                required={entryType === "point_number"}
+              />
+            </div>
           </div>
         )}
 
-        {showValueField && (
-          <div className="space-y-2">
-            <Label htmlFor="entry-value">{t.entries.valueLabel}</Label>
-            <Input
-              id="entry-value"
-              type="number"
-              inputMode="decimal"
-              value={valueText}
-              onChange={(e) => setValueText(e.target.value)}
-              required
-            />
+        {/* Duration: Start/End sub-toggle + label input */}
+        {!isPoint && (
+          <div className="flex gap-2 items-end">
+            <div className="inline-flex rounded-md border overflow-hidden shrink-0 self-end">
+              <button
+                type="button"
+                className={`flex items-center gap-1 px-2.5 py-2 text-xs font-medium transition-colors ${
+                  entryType === "span_start"
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-muted"
+                }`}
+                onClick={() => setEntryType("span_start")}
+              >
+                <Play className="size-3" />
+                {t.entries.subStart}
+              </button>
+              <button
+                type="button"
+                className={`flex items-center gap-1 px-2.5 py-2 text-xs font-medium transition-colors border-l ${
+                  entryType === "span_end"
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-muted"
+                }`}
+                onClick={() => setEntryType("span_end")}
+              >
+                <Square className="size-3" />
+                {t.entries.subEnd}
+              </button>
+            </div>
+            <div className="flex flex-col gap-2 flex-1">
+              <Label htmlFor="entry-label">
+                {t.entries.labelLabel}{" "}
+                <span className="text-xs text-muted-foreground">
+                  ({t.common.optional})
+                </span>
+              </Label>
+              <Input
+                id="entry-label"
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+              />
+            </div>
           </div>
         )}
 

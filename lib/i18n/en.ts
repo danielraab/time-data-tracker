@@ -72,6 +72,12 @@ export const t = {
     locationMap: "Location on map",
     openInOsm: "Open in OpenStreetMap",
     accuracy: (m: number) => `±${m} m`,
+    modePoint: "Point",
+    modeDuration: "Duration",
+    subText: "Text",
+    subNumber: "Number",
+    subStart: "Start",
+    subEnd: "End",
     types: {
       point_label: "Point · Label",
       point_number: "Point · Number",
