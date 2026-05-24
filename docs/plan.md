@@ -1,6 +1,7 @@
 # TiDaTra – Implementation Plan
 
-> Status snapshot as of **2026-05-23**:
+> Status snapshot as of **2026-05-24**:
+>
 > - **Phase 1 (local-first MVP): complete** — scaffold, PWA shell, data layer
 >   (PouchDB), dashboard, series create/detail, entries, timeline. Lint + build
 >   clean.
@@ -11,7 +12,12 @@
 >   covering pure helpers (spans, format, url) and data-layer integration
 >   (series-repo, entries-repo). Test hook `_setDbForTests` in
 >   `lib/db/pouch.ts`; in-memory fixture in `test/db-fixture.ts`.
-> - **Up next: Phase 2 (auth)** — see _Phase 2 — Authentication_ below.
+> - **Phase 2 (auth): in progress** — `better-auth` installed; SQLite adapter
+>   with auto-migrated schema; magic-link via SMTP (nodemailer — any SMTP
+>   server); social providers Google + GitHub; Authentik OIDC via `genericOAuth`
+>   plugin. Login page, account menu in header. All providers opt-in via env vars.
+>   See `.env.example` for the full variable reference.
+> - **Up next: Phase 3 (sync)** — see _Phase 3_ below.
 
 ## Context
 
@@ -22,6 +28,7 @@ boilerplate). The goal is to build **TiDaTra**, an offline-first PWA for recordi
 values, and durations), viewable on a dynamic timeline.
 
 Core product constraints (from the spec):
+
 - **Local-first**: fully usable with no account and no network. The browser (PouchDB)
   is the source of truth until the user logs in.
 - **Sync on login**: signing in syncs local data to the server and across devices.
@@ -31,6 +38,7 @@ Core product constraints (from the spec):
   locales can be added later without touching components.
 
 ### Decisions confirmed with the user
+
 - **Delivery**: phased, **MVP first**. Phase 1 (local offline-only) is built and
   reviewed before auth/sync/sharing.
 - **Sign-in methods** (Phase 2): Magic link (email), Authentik OIDC, Google, GitHub.
@@ -70,12 +78,14 @@ lib/
 ### Data model (PouchDB, single local DB `tidatra`)
 
 `Series` doc — `_id: "series:<uuid>"`
+
 - `type: "series"`, `title`, `description`, `tags: string[]`
 - `createdAt`, `updatedAt` (ISO strings)
 - `ownerId: string | null` (null while local-only; set on login — Phase 3)
 - `shares: Share[]` (Phase 4)
 
 `Entry` doc — `_id: "entry:<uuid>"`
+
 - `type: "entry"`, `seriesId: string`
 - `entryType`: `"point_label" | "point_number" | "span_start" | "span_end"`
 - `timestamp` (ISO), `label?: string`, `value?: number`
@@ -94,6 +104,7 @@ series (sufficient for MVP, no separate tag docs).
 ## Phase 1 — Local-first MVP (build + review)
 
 ### 1. Dependencies (newest stable)
+
 - `pnpm add pouchdb-browser pouchdb-find date-fns`
 - `pnpm add -D @types/pouchdb-browser @types/pouchdb-find`
 - Init **shadcn/ui** (`pnpm dlx shadcn@latest init`) — pulls in `clsx`,
@@ -103,6 +114,7 @@ series (sufficient for MVP, no separate tag docs).
   that works with Next 16 App Router).
 
 ### 2. Foundation
+
 - `app/globals.css`: add shadcn theme tokens (light/dark CSS variables), keep Tailwind v4
   `@theme inline`.
 - `app/layout.tsx`: `lang="de"`, real `metadata` (title "TiDaTra", description),
@@ -112,6 +124,7 @@ series (sufficient for MVP, no separate tag docs).
 - `lib/types.ts`, `lib/i18n/en.ts`, `lib/utils.ts`.
 
 ### 3. Data layer (`lib/db/`)
+
 - `pouch.ts`: lazily create a `pouchdb-browser` DB **only in the browser** (guard
   `typeof window`); register `pouchdb-find` and create indexes on `type` / `seriesId`.
 - `series-repo.ts` / `entries-repo.ts`: typed create/update/delete/get/list. IDs via
@@ -120,6 +133,7 @@ series (sufficient for MVP, no separate tag docs).
   reactively. Span helpers: `isOpenSpan(entry, entries)`, `pairSpans(entries)`.
 
 ### 4. UI / pages (mostly client components — PouchDB is client-only)
+
 - **Dashboard `app/page.tsx`**: list all series as cards; each card shows title,
   tags, entry count, and an **open-span warning badge**. Series with open spans sorted
   to the top / visually flagged. `SearchBar` (filter by name) + `TagFilter`
@@ -140,6 +154,7 @@ series (sufficient for MVP, no separate tag docs).
   Clicking the axis opens `AddEntryDialog` pre-filled with the clicked timestamp.
 
 ### 5. Quality
+
 - UI strings centralized in `lib/i18n/en.ts` (locale-ready for future translations).
 - Mobile-first responsive layout (PWA install target).
 - `pnpm lint` clean; `pnpm build` succeeds.
@@ -147,6 +162,7 @@ series (sufficient for MVP, no separate tag docs).
 ---
 
 ## Phase 2 — Authentication (after Phase 1 review)
+
 - Install & configure `better-auth`: providers Google, GitHub, Authentik (generic
   OIDC), and magic link via Resend. SQLite store (`DATABASE_URL`, already in
   `.env.example`).
@@ -154,6 +170,7 @@ series (sufficient for MVP, no separate tag docs).
 - App remains fully usable logged-out.
 
 ## Phase 3 — Backend-mediated CouchDB sync
+
 - Server CouchDB client (env `COUCHDB_*`); the dev container already runs CouchDB.
 - `app/api/sync/route.ts`: authenticated **push** (apply client changes) and **pull**
   (return server changes since a checkpoint). Last-write-wins via `updatedAt`.
@@ -161,6 +178,7 @@ series (sufficient for MVP, no separate tag docs).
   `ownerId` to local docs on first login and uploads them (guest → account migration).
 
 ## Phase 4 — Sharing
+
 - Share a series by email, `read-only` or `editable` (`shares[]` on the series doc).
 - `/api/sync` filters per user: owners + shared recipients receive the series; editable
   vs read-only enforced server-side.
@@ -169,6 +187,7 @@ series (sufficient for MVP, no separate tag docs).
 ---
 
 ## Critical files
+
 - `app/layout.tsx`, `app/page.tsx`, `app/globals.css` — replace boilerplate.
 - `next.config.ts` — Serwist wrapper.
 - `README.md` / `AGENTS.md` — fix the "UI is in German" notes to say English.
@@ -176,6 +195,7 @@ series (sufficient for MVP, no separate tag docs).
   everything under `components/` and `lib/`.
 
 ## Verification (Phase 1)
+
 1. `pnpm dev`, open `http://localhost:3000`.
 2. Create a time series with description + tags.
 3. Add one entry of each type: point label, point number, span start, span end.

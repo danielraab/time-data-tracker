@@ -20,6 +20,14 @@ services:
     networks:
       - devnet
 
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      - "8025:8025"
+    networks:
+      - devnet
+
 networks:
   devnet:
     driver: bridge

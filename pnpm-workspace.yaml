@@ -1,4 +1,5 @@
 allowBuilds:
+  better-sqlite3: true
   leveldown: false
   msw: false
   sharp: true

@@ -95,6 +95,22 @@ export const t = {
       span_end: "Ends an open duration.",
     } satisfies Record<string, string>,
   },
+  auth: {
+    signIn: "Sign in",
+    signOut: "Sign out",
+    signInTitle: "Sign in to TiDaTra",
+    signInDescription: "Sign in to sync your data across devices.",
+    emailLabel: "Email address",
+    emailPlaceholder: "you@example.com",
+    sendMagicLink: "Send sign-in link",
+    magicLinkSent:
+      "Check your inbox — we've sent you a sign-in link. You can close this tab.",
+    orContinueWith: "or continue with",
+    signInWithGitHub: "Continue with GitHub",
+    signInWithGoogle: "Continue with Google",
+    signInWithAuthentik: "Continue with Authentik",
+    errorSendingLink: "Could not send sign-in link. Please try again.",
+  },
   timeline: {
     heading: "Timeline",
     empty: "Add entries to see them on the timeline.",

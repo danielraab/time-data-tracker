@@ -6,6 +6,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Authentication (Phase 2)**: sign-in via magic link (email) or OAuth — Google, GitHub,
+  and Authentik OIDC. Powered by `better-auth` with a local SQLite store.
+- **Magic-link email via SMTP**: any SMTP server can be used (configured through
+  `SMTP_HOST/PORT/USER/PASS/FROM` env vars). In development, the link is printed to the
+  server console when no SMTP host is set, so no mail server is needed to try the flow.
+- **Login page** (`/login`): email form for magic links and buttons for each OAuth
+  provider that is enabled through env vars. Providers absent from the environment are
+  hidden automatically — no code changes required.
+- **Account menu in header**: shows the signed-in user's name and a "Sign out" button
+  when authenticated; shows a "Sign in" link otherwise. App is fully usable while
+  signed out (local-only mode unchanged).
+- **Mailpit dev service**: the dev container now runs
+  [Mailpit](https://github.com/axllent/mailpit) on port 1025 (SMTP) / 8025 (web UI)
+  to catch outgoing magic-link emails locally. Port 8025 is forwarded to the host.
+- **`.env.example`** updated with all auth, SMTP, and OAuth variables; SMTP defaults
+  point to the Mailpit dev service.
+
+### Changed
+
+- `AppHeader` converted to a client component to display live session state via
+  `useSession()`.
+
 ## [0.3.0] - 2026-05-24
 
 ### Added
