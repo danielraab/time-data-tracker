@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Dot, Hash, MapPin, Play, Square, Timer, Type } from "lucide-react";
 import {
   Dialog,
@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { createEntry } from "@/lib/db/entries-repo";
+import { useEntries, useSeriesList } from "@/lib/db/hooks";
 import { openStartsBefore } from "@/lib/spans";
 import {
   formatDateTime,
@@ -28,7 +29,7 @@ import {
   toDateTimeLocal,
 } from "@/lib/format";
 import { t } from "@/lib/i18n/en";
-import type { Entry, EntryType, Gps } from "@/lib/types";
+import type { Entry, EntryType, Gps, Series } from "@/lib/types";
 
 interface AddEntryDialogProps {
   open: boolean;
@@ -68,6 +69,9 @@ interface AddEntryFormProps {
   defaultTimestamp: string;
   defaultType?: EntryType;
   onClose: () => void;
+  /** Optional slot rendered between the dialog header and the type toggle.
+   *  Used by the dashboard variant to inject a series selector. */
+  seriesSelectorSlot?: ReactNode;
 }
 
 function AddEntryForm({
@@ -76,6 +80,7 @@ function AddEntryForm({
   defaultTimestamp,
   defaultType,
   onClose,
+  seriesSelectorSlot,
 }: AddEntryFormProps) {
   const [entryType, setEntryType] = useState<EntryType>(
     defaultType ?? "point_label",
@@ -127,7 +132,7 @@ function AddEntryForm({
   }
 
   async function handleSubmit() {
-    if (saving) return;
+    if (saving || !seriesId) return;
     const numericValue =
       entryType === "point_number" ? Number(valueText) : undefined;
     if (entryType === "point_number" && !Number.isFinite(numericValue)) return;
@@ -161,6 +166,8 @@ function AddEntryForm({
       </DialogHeader>
 
       <div className="space-y-4">
+        {seriesSelectorSlot}
+
         {/* Main type toggle: Point | Duration */}
         <div className="space-y-2">
           <Label>{t.entries.typeLabel}</Label>
@@ -375,10 +382,66 @@ function AddEntryForm({
         <Button variant="ghost" onClick={onClose}>
           {t.common.cancel}
         </Button>
-        <Button onClick={handleSubmit} disabled={saving}>
+        <Button onClick={handleSubmit} disabled={saving || !seriesId}>
           {t.common.add}
         </Button>
       </DialogFooter>
     </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Dashboard variant — series is selected inside the dialog
+// ---------------------------------------------------------------------------
+
+export function AddEntryFromDashboardDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <AddEntryWithSeriesForm onClose={() => onOpenChange(false)} />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function AddEntryWithSeriesForm({ onClose }: { onClose: () => void }) {
+  const { series } = useSeriesList();
+  const [selectedSeriesId, setSelectedSeriesId] = useState("");
+  const { entries } = useEntries(selectedSeriesId);
+  const [defaultTimestamp] = useState(() => new Date().toISOString());
+
+  const seriesSlot = (
+    <div className="space-y-2">
+      <Label>{t.entries.seriesLabel}</Label>
+      <Select value={selectedSeriesId} onValueChange={setSelectedSeriesId}>
+        <SelectTrigger>
+          <SelectValue placeholder={t.entries.selectSeriesPlaceholder} />
+        </SelectTrigger>
+        <SelectContent>
+          {series.map((s: Series) => (
+            <SelectItem key={s._id} value={s._id}>
+              {s.title || t.series.untitled}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+
+  return (
+    <AddEntryForm
+      key={selectedSeriesId}
+      seriesId={selectedSeriesId}
+      entries={entries}
+      defaultTimestamp={defaultTimestamp}
+      onClose={onClose}
+      seriesSelectorSlot={seriesSlot}
+    />
   );
 }

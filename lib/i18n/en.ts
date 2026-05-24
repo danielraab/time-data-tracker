@@ -30,6 +30,7 @@ export const t = {
     noMatches: "No time series match your filters.",
     entryCount: (n: number) => `${n} ${n === 1 ? "entry" : "entries"}`,
     openSpan: "Open duration",
+    addEntry: "Add entry",
   },
   series: {
     createTitle: "New time series",
@@ -78,6 +79,8 @@ export const t = {
     subNumber: "Number",
     subStart: "Start",
     subEnd: "End",
+    seriesLabel: "Series",
+    selectSeriesPlaceholder: "Select a series…",
     types: {
       point_label: "Point · Label",
       point_number: "Point · Number",

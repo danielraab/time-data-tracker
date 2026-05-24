@@ -6,6 +6,7 @@ import { Plus, Search, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AddEntryFromDashboardDialog } from "@/components/entries/add-entry-dialog";
 import { useAllEntries, useSeriesList } from "@/lib/db/hooks";
 import { hasOpenSpan } from "@/lib/spans";
 import { t } from "@/lib/i18n/en";
@@ -17,6 +18,7 @@ export function SeriesList() {
   const { entries } = useAllEntries();
   const [query, setQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [addEntryOpen, setAddEntryOpen] = useState(false);
 
   const entriesBySeries = useMemo(() => {
     const map = new Map<string, Entry[]>();
@@ -36,11 +38,9 @@ export function SeriesList() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const matchQuery = (title: string) =>
-      !q || title.toLowerCase().includes(q);
+    const matchQuery = (title: string) => !q || title.toLowerCase().includes(q);
     const matchTags = (tags: string[]) =>
-      selectedTags.length === 0 ||
-      selectedTags.some((t) => tags.includes(t));
+      selectedTags.length === 0 || selectedTags.some((t) => tags.includes(t));
 
     return series
       .filter((s) => matchQuery(s.title) && matchTags(s.tags))
@@ -73,12 +73,18 @@ export function SeriesList() {
         <h1 className="text-2xl font-semibold tracking-tight">
           {t.dashboard.title}
         </h1>
-        <Button asChild>
-          <Link href="/series/new">
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setAddEntryOpen(true)}>
             <Plus className="size-4" />
-            {t.dashboard.newSeries}
-          </Link>
-        </Button>
+            {t.dashboard.addEntry}
+          </Button>
+          <Button asChild>
+            <Link href="/series/new">
+              <Plus className="size-4" />
+              {t.dashboard.newSeries}
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {series.length > 0 && (
@@ -154,6 +160,11 @@ export function SeriesList() {
           ))}
         </div>
       )}
+
+      <AddEntryFromDashboardDialog
+        open={addEntryOpen}
+        onOpenChange={setAddEntryOpen}
+      />
     </div>
   );
 }
