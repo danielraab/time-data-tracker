@@ -68,6 +68,22 @@ TiDaTra (Time & Data Tracker) is an **offline-first PWA** for recording time ser
 - `pnpm dev` — dev server  ·  `pnpm build` — production build  ·  `pnpm lint` — ESLint
 - Run `pnpm lint` before considering a change complete.
 
+## Testing
+
+- Test runner: **Vitest** (`pnpm test`). Config: `vitest.config.ts` — `environment: "node"`,
+  glob `**/*.test.ts`. No jsdom/React Testing Library is set up.
+- **Always write tests when adding non-trivial logic.** After implementing a feature,
+  create a `*.test.ts` file alongside the source file.
+- Since React components cannot be rendered in the node environment, **extract pure helper
+  functions** from components (URL builders, string formatters, data transformers) and test
+  those. Mark extracted helpers with `/** Pure helper — exported for unit tests. */`.
+- Existing test files to use as reference:
+  - `lib/format.test.ts` — pure utility functions
+  - `lib/spans.test.ts` — pure data logic
+  - `lib/db/entries-repo.test.ts` — PouchDB repo (uses `pouchdb-adapter-memory`)
+  - `components/entries/location-map-modal.test.ts` — URL builder extracted from a modal
+  - `components/entries/series-map-modal.test.ts` — srcdoc builder extracted from a modal
+
 ## Next.js – read the docs first
 
 The pinned Next.js version may differ from what you remember. Before any Next.js task,

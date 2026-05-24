@@ -43,6 +43,9 @@ export const t = {
     deleteSeries: "Delete series",
     notFound: "This time series could not be found.",
     untitled: "Untitled series",
+    showOnMap: "Show on map",
+    mapModalTitle: "Locations",
+    mapPointCount: (n: number) => `${n} ${n === 1 ? "location" : "locations"}`,
   },
   entries: {
     heading: "Entries",

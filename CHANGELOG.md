@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   pin badge. Clicking it opens a modal with an embedded OpenStreetMap view centred on
   the coordinates, an accuracy indicator, and an "Open in OpenStreetMap" link. Applies
   to all entry types (point, paired span, open start, orphan end).
+- **Series locations map**: when at least one entry in a series has a GPS location, a
+  "Show on map" button appears in the entries section header. Clicking it opens a modal
+  with a Leaflet map showing all located entries as markers; each marker popup shows the
+  entry's timestamp and label. The map auto-fits its bounds to include all markers.
 
 ## [0.1.1] - 2026-05-24
 

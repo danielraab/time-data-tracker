@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { ArrowLeft, Plus } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ArrowLeft, Map, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AddEntryDialog } from "@/components/entries/add-entry-dialog";
 import { EntryList } from "@/components/entries/entry-list";
+import { SeriesMapModal } from "@/components/entries/series-map-modal";
 import { Timeline } from "@/components/timeline/timeline";
 import { useEntries, useSeries } from "@/lib/db/hooks";
+import { formatDateTime } from "@/lib/format";
 import { t } from "@/lib/i18n/en";
 import type { EntryType } from "@/lib/types";
 import { SeriesHeader } from "./series-header";
@@ -16,8 +18,23 @@ export function SeriesDetail({ id }: { id: string }) {
   const { series, loading } = useSeries(id);
   const { entries } = useEntries(id);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
   const [defaultTimestamp, setDefaultTimestamp] = useState<string>("");
   const [defaultType, setDefaultType] = useState<EntryType | undefined>();
+
+  const mapPoints = useMemo(
+    () =>
+      entries
+        .filter((e) => e.gps != null)
+        .map((e) => ({
+          lat: e.gps!.lat,
+          lng: e.gps!.lng,
+          popup: [formatDateTime(e.timestamp), e.label]
+            .filter(Boolean)
+            .join(" · "),
+        })),
+    [entries],
+  );
 
   function openDialog(opts?: { timestamp?: string; type?: EntryType }) {
     setDefaultTimestamp(opts?.timestamp ?? new Date().toISOString());
@@ -58,10 +75,22 @@ export function SeriesDetail({ id }: { id: string }) {
           <h2 className="text-sm font-medium text-muted-foreground">
             {t.entries.heading}
           </h2>
-          <Button size="sm" onClick={() => openDialog()}>
-            <Plus className="size-4" />
-            {t.entries.addEntry}
-          </Button>
+          <div className="flex items-center gap-2">
+            {mapPoints.length > 0 && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setMapOpen(true)}
+              >
+                <Map className="size-4" />
+                {t.series.showOnMap}
+              </Button>
+            )}
+            <Button size="sm" onClick={() => openDialog()}>
+              <Plus className="size-4" />
+              {t.entries.addEntry}
+            </Button>
+          </div>
         </div>
         <EntryList entries={entries} />
       </section>
@@ -74,6 +103,15 @@ export function SeriesDetail({ id }: { id: string }) {
         defaultTimestamp={defaultTimestamp}
         defaultType={defaultType}
       />
+
+      {mapPoints.length > 0 && (
+        <SeriesMapModal
+          title={series.title}
+          points={mapPoints}
+          open={mapOpen}
+          onOpenChange={setMapOpen}
+        />
+      )}
     </div>
   );
 }
