@@ -69,7 +69,7 @@ disable those sign-in methods.
 A CouchDB service is included in the dev container (`.devcontainer/docker-compose.yml`)
 and runs automatically on `http://localhost:5984` (user `admin`, password `password`).
 If you are not using the dev container, run your own CouchDB instance and point
-`NEXT_PUBLIC_COUCHDB_URL` at it.
+`COUCHDB_URL` at it.
 
 ### 4. Run the dev server
 
@@ -81,12 +81,12 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Scripts
 
-| Command       | Description                       |
-| ------------- | --------------------------------- |
-| `pnpm dev`    | Start the development server      |
-| `pnpm build`  | Production build                  |
-| `pnpm start`  | Run the production build          |
-| `pnpm lint`   | Run ESLint                        |
+| Command      | Description                  |
+| ------------ | ---------------------------- |
+| `pnpm dev`   | Start the development server |
+| `pnpm build` | Production build             |
+| `pnpm start` | Run the production build     |
+| `pnpm lint`  | Run ESLint                   |
 
 ## Project status
 
