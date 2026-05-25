@@ -110,6 +110,8 @@ export const t = {
     signInWithGoogle: "Continue with Google",
     signInWithAuthentik: "Continue with Authentik",
     errorSendingLink: "Could not send sign-in link. Please try again.",
+    settings: "Settings",
+    accountMenuLabel: "Account",
   },
   timeline: {
     heading: "Timeline",
