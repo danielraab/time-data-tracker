@@ -10,6 +10,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": resolve(__dirname, "./"),
+      // server-only throws in non-Next.js environments; in tests we just need it to be a no-op
+      "server-only": resolve(__dirname, "./test/server-only-stub.ts"),
     },
   },
 });

@@ -82,13 +82,32 @@ Open [http://localhost:3000](http://localhost:3000).
 ## Scripts
 
 | Command      | Description                  |
-| ------------ | ---------------------------- |
-| `pnpm dev`   | Start the development server |
-| `pnpm build` | Production build             |
-| `pnpm start` | Run the production build     |
-| `pnpm lint`  | Run ESLint                   |
+| ------------ | ----------------------------- |
+| `pnpm dev`   | Start the development server  |
+| `pnpm build` | Production build              |
+| `pnpm start` | Run the production build      |
+| `pnpm lint`  | Run ESLint                    |
+| `pnpm test`  | Run the Vitest test suite     |
 
 ## Project status
 
-Early development — the scaffold is in place and features are being built out against the
-specification above.
+| Phase | Description | Status |
+|-------|-------------|--------|
+| 1 | Local-first MVP (PouchDB, dashboard, series, entries, timeline, PWA) | ✅ complete |
+| 2 | Authentication (better-auth: magic link, GitHub, Google, Authentik OIDC) | ✅ complete |
+| 3 | Backend-mediated CouchDB sync (push/pull via `/api/sync`, LWW, checkpoint) | ✅ complete |
+| 4 | Sharing (share a series by email, read-only or editable) | planned |
+
+### Environment variables for sync
+
+Copy `.env.example` to `.env` and set the CouchDB vars:
+
+```
+COUCHDB_URL=http://localhost:5984   # base URL — no database path
+COUCHDB_USER=admin
+COUCHDB_PASSWORD=password
+```
+
+The dev container provides CouchDB on `localhost:5984` with these credentials.
+The server creates a per-user database (`tidatra_<userId>`) automatically on
+first sync.

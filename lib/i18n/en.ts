@@ -113,6 +113,12 @@ export const t = {
     settings: "Settings",
     accountMenuLabel: "Account",
   },
+  sync: {
+    syncing: "Syncing…",
+    synced: "Synced",
+    syncError: "Sync failed",
+    label: "Sync",
+  },
   timeline: {
     heading: "Timeline",
     empty: "Add entries to see them on the timeline.",

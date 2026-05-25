@@ -1,6 +1,6 @@
 # TiDaTra – Implementation Plan
 
-> Status snapshot as of **2026-05-24**:
+> Status snapshot as of **2026-05-25**:
 >
 > - **Phase 1 (local-first MVP): complete** — scaffold, PWA shell, data layer
 >   (PouchDB), dashboard, series create/detail, entries, timeline. Lint + build
@@ -8,16 +8,20 @@
 > - **Bug fix landed**: series detail "could not be found" — caused by colon-
 >   bearing `series:<uuid>` IDs round-tripping through URL encode/decode.
 >   Replaced by `lib/url.ts` slug helpers so URLs are plain `/series/<uuid>`.
-> - **Tests scaffolded**: Vitest + `pouchdb-adapter-memory`. 26 passing tests
->   covering pure helpers (spans, format, url) and data-layer integration
->   (series-repo, entries-repo). Test hook `_setDbForTests` in
->   `lib/db/pouch.ts`; in-memory fixture in `test/db-fixture.ts`.
-> - **Phase 2 (auth): in progress** — `better-auth` installed; SQLite adapter
+> - **Tests scaffolded**: Vitest + `pouchdb-adapter-memory`. 68 passing tests
+>   covering pure helpers (spans, format, url, couch) and data-layer integration
+>   (series-repo, entries-repo, sync). Test hook `_setDbForTests` in
+>   `lib/db/pouch.ts`; in-memory fixture in `test/db-fixture.ts`. A
+>   `test/server-only-stub.ts` stubs the `server-only` package so server modules
+>   can be imported in the Vitest (Node) environment.
+> - **Phase 2 (auth): complete** — `better-auth` installed; SQLite adapter
 >   with auto-migrated schema; magic-link via SMTP (nodemailer — any SMTP
 >   server); social providers Google + GitHub; Authentik OIDC via `genericOAuth`
 >   plugin. Login page, account menu in header. All providers opt-in via env vars.
 >   See `.env.example` for the full variable reference.
-> - **Up next: Phase 3 (sync)** — see _Phase 3_ below.
+> - **Phase 3 (sync): complete** — backend-mediated CouchDB sync. See _Phase 3_
+>   below for the full spec.
+> - **Up next: Phase 4 (sharing)** — see _Phase 4_ below.
 
 ## Context
 
@@ -169,13 +173,58 @@ series (sufficient for MVP, no separate tag docs).
 - `app/api/auth/[...all]/route.ts`, session provider, login page, header account menu.
 - App remains fully usable logged-out.
 
-## Phase 3 — Backend-mediated CouchDB sync
+## Phase 3 — Backend-mediated CouchDB sync ✓
 
-- Server CouchDB client (env `COUCHDB_*`); the dev container already runs CouchDB.
-- `app/api/sync/route.ts`: authenticated **push** (apply client changes) and **pull**
-  (return server changes since a checkpoint). Last-write-wins via `updatedAt`.
-- Client sync engine: runs on login + when online; persists a checkpoint; assigns
-  `ownerId` to local docs on first login and uploads them (guest → account migration).
+### What was built
+
+- **`lib/couch.ts`** (server-only) — CouchDB HTTP client.
+  - `userDbName(userId)` — sanitises the user ID into a valid CouchDB database
+    name (`tidatra_<sanitized-id>`). Each user gets an isolated database.
+  - `ensureUserDb(userId)` — creates the per-user database on first sync (PUT,
+    idempotent with 412 handling).
+  - `getChangesSince(userId, since)` — incremental pull via the `_changes` feed
+    (sequence-based). Returns only live `series` and `entry` docs with CouchDB
+    `_rev` stripped so the client's PouchDB revision is never contaminated.
+  - `putDocs(userId, docs)` — push with last-write-wins on `updatedAt`. Fetches
+    existing CouchDB revs via `_all_docs` to perform in-process LWW before
+    calling `_bulk_docs`.
+  - Configured via `COUCHDB_URL` (base URL), `COUCHDB_USER`, `COUCHDB_PASSWORD`.
+
+- **`app/api/sync/route.ts`** — Next.js API route, auth-gated.
+  - `GET /api/sync?since=<seq>` — pull: calls `getChangesSince`, returns
+    `{ docs, lastSeq }`.
+  - `POST /api/sync` — push: validates body, calls `putDocs`, returns
+    `{ accepted, skipped }`.
+
+- **`lib/db/sync.ts`** (client) — sync engine.
+  - `lastWriteWins(incoming, existing)` — pure comparison helper.
+  - `claimLocalSeries(userId)` — assigns `ownerId` to any Series docs still
+    `null` (guest → account migration on first login).
+  - `applyPulledDocs(db, docs)` — merges pulled docs into local PouchDB with
+    LWW; handles both inserts (new docs) and updates (preserves local `_rev`).
+  - `runSync(userId)` — orchestrates the full cycle: claim → push → pull →
+    apply → save checkpoint. Checkpoint doc `sync:checkpoint` stored in local
+    PouchDB carries `lastSync` (ISO, for push filtering) and `lastSeq` (CouchDB
+    sequence, for incremental pull). Resets on account change.
+
+- **`components/app-header.tsx`** — triggers `runSync` on session change (login)
+  and on the browser `online` event. Shows a subtle spinner / checkmark / error
+  icon in the header while syncing.
+
+- **Tests** — `lib/db/sync.test.ts` (14 tests) and `lib/couch.test.ts` (4 tests).
+  A `test/server-only-stub.ts` stubs `server-only` so `lib/couch.ts` is
+  importable in Vitest. `vitest.config.ts` aliases `server-only` to the stub.
+
+### Key design decisions
+
+- **Per-user CouchDB databases** (`tidatra_<userId>`) isolate data and make
+  permission enforcement trivial.
+- **No direct client ↔ CouchDB communication.** All sync goes through
+  `/api/sync`; the server enforces authentication and per-user scoping.
+- **Sequence-based incremental pull** (`_changes` feed) is reliable and handles
+  deletions correctly in the future.
+- **Timestamp-based push filtering** (`updatedAt > lastSync`) keeps push payloads
+  small on subsequent syncs.
 
 ## Phase 4 — Sharing
 

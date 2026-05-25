@@ -2,9 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { LogOutIcon, SettingsIcon, UserIcon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { CheckIcon, LoaderIcon, LogOutIcon, SettingsIcon, UserIcon, WifiOffIcon } from "lucide-react";
 import { t } from "@/lib/i18n/en";
 import { useSession, signOut } from "@/lib/auth-client";
+import { runSync } from "@/lib/db/sync";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -39,8 +41,81 @@ function UserAvatar({
   return <UserIcon className="size-4 text-muted-foreground" />;
 }
 
+type SyncState = "idle" | "syncing" | "synced" | "error";
+
+function SyncIndicator({ state }: { state: SyncState }) {
+  if (state === "idle") return null;
+  if (state === "syncing")
+    return (
+      <span
+        className="text-muted-foreground"
+        title={t.sync.syncing}
+        aria-label={t.sync.syncing}
+      >
+        <LoaderIcon className="size-4 animate-spin" />
+      </span>
+    );
+  if (state === "synced")
+    return (
+      <span
+        className="text-green-600"
+        title={t.sync.synced}
+        aria-label={t.sync.synced}
+      >
+        <CheckIcon className="size-4" />
+      </span>
+    );
+  return (
+    <span
+      className="text-destructive"
+      title={t.sync.syncError}
+      aria-label={t.sync.syncError}
+    >
+      <WifiOffIcon className="size-4" />
+    </span>
+  );
+}
+
 export function AppHeader() {
   const { data: session } = useSession();
+  const [syncState, setSyncState] = useState<SyncState>("idle");
+  const syncedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevUserIdRef = useRef<string | null>(null);
+
+  function triggerSync(userId: string) {
+    if (syncedTimerRef.current) clearTimeout(syncedTimerRef.current);
+    setSyncState("syncing");
+    runSync(userId)
+      .then(() => {
+        setSyncState("synced");
+        syncedTimerRef.current = setTimeout(() => setSyncState("idle"), 3000);
+      })
+      .catch(() => setSyncState("error"));
+  }
+
+  // Sync on login (when session user ID changes from null → a real ID)
+  useEffect(() => {
+    const userId = session?.user.id ?? null;
+    if (userId && userId !== prevUserIdRef.current) {
+      prevUserIdRef.current = userId;
+      triggerSync(userId);
+    } else if (!userId) {
+      prevUserIdRef.current = null;
+    }
+  }, [session?.user.id]);
+
+  // Re-sync when the browser comes back online
+  useEffect(() => {
+    function handleOnline() {
+      const userId = session?.user.id;
+      if (userId) triggerSync(userId);
+    }
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, [session?.user.id]);
+
+  // Only show sync state while a session is active
+  const displaySyncState: SyncState = session ? syncState : "idle";
 
   return (
     <header className="border-b border-border bg-card">
@@ -56,6 +131,7 @@ export function AppHeader() {
         </Link>
 
         <div className="flex items-center gap-2">
+          <SyncIndicator state={displaySyncState} />
           {session ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
