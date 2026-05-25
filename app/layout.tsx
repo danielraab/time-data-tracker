@@ -4,6 +4,7 @@ import "./globals.css";
 import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
+import { SyncProvider } from "@/lib/db/sync-context";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,7 +18,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "TiDaTra – Time & Data Tracker",
-  description: "Offline-first tracker for time series, durations and data points.",
+  description:
+    "Offline-first tracker for time series, durations and data points.",
   applicationName: "TiDaTra",
   appleWebApp: {
     capable: true,
@@ -45,11 +47,13 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans">
-        <AppHeader />
-        <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6">
-          {children}
-        </main>
-        <AppFooter />
+        <SyncProvider>
+          <AppHeader />
+          <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6">
+            {children}
+          </main>
+          <AppFooter />
+        </SyncProvider>
         <ServiceWorkerRegister />
       </body>
     </html>

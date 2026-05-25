@@ -82,21 +82,21 @@ Open [http://localhost:3000](http://localhost:3000).
 ## Scripts
 
 | Command      | Description                  |
-| ------------ | ----------------------------- |
-| `pnpm dev`   | Start the development server  |
-| `pnpm build` | Production build              |
-| `pnpm start` | Run the production build      |
-| `pnpm lint`  | Run ESLint                    |
-| `pnpm test`  | Run the Vitest test suite     |
+| ------------ | ---------------------------- |
+| `pnpm dev`   | Start the development server |
+| `pnpm build` | Production build             |
+| `pnpm start` | Run the production build     |
+| `pnpm lint`  | Run ESLint                   |
+| `pnpm test`  | Run the Vitest test suite    |
 
 ## Project status
 
-| Phase | Description | Status |
-|-------|-------------|--------|
-| 1 | Local-first MVP (PouchDB, dashboard, series, entries, timeline, PWA) | ✅ complete |
-| 2 | Authentication (better-auth: magic link, GitHub, Google, Authentik OIDC) | ✅ complete |
-| 3 | Backend-mediated CouchDB sync (push/pull via `/api/sync`, LWW, checkpoint) | ✅ complete |
-| 4 | Sharing (share a series by email, read-only or editable) | planned |
+| Phase | Description                                                                | Status      |
+| ----- | -------------------------------------------------------------------------- | ----------- |
+| 1     | Local-first MVP (PouchDB, dashboard, series, entries, timeline, PWA)       | ✅ complete |
+| 2     | Authentication (better-auth: magic link, GitHub, Google, Authentik OIDC)   | ✅ complete |
+| 3     | Backend-mediated CouchDB sync (push/pull via `/api/sync`, LWW, checkpoint) | ✅ complete |
+| 4     | Sharing (share a series by email, read-only or editable)                   | planned     |
 
 ### Environment variables for sync
 

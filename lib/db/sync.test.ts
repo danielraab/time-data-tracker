@@ -210,7 +210,11 @@ describe("claimLocalSeries", () => {
   });
 
   it("does not touch series that already have an owner", async () => {
-    const series = await createSeries({ title: "Owned", description: "", tags: [] });
+    const series = await createSeries({
+      title: "Owned",
+      description: "",
+      tags: [],
+    });
     const db = await getDb();
     // Manually set ownerId on the just-created series
     await db.put({ ...series, ownerId: "existing-owner" });
@@ -229,7 +233,11 @@ describe("claimLocalSeries", () => {
 
   it("bumps updatedAt on claimed docs", async () => {
     const before = new Date("2026-01-01T00:00:00.000Z");
-    const series = await createSeries({ title: "Test", description: "", tags: [] });
+    const series = await createSeries({
+      title: "Test",
+      description: "",
+      tags: [],
+    });
     expect(new Date(series.updatedAt) <= before).toBe(false);
 
     await claimLocalSeries("user-789");

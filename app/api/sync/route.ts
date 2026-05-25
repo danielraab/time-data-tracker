@@ -56,7 +56,10 @@ export async function POST(req: NextRequest) {
     if (!Array.isArray(body.docs)) throw new Error("docs must be an array");
     docs = body.docs as TidatraDoc[];
   } catch {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 },
+    );
   }
 
   try {

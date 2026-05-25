@@ -116,8 +116,9 @@ export const t = {
   sync: {
     syncing: "Syncing…",
     synced: "Synced",
-    syncError: "Sync failed",
+    syncError: "Sync failed — click to retry",
     label: "Sync",
+    signInToSync: "Sign in to sync across devices",
   },
   timeline: {
     heading: "Timeline",

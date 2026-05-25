@@ -154,9 +154,7 @@ export async function runSync(userId: string): Promise<SyncResult> {
   }
 
   // 4. Pull changes from server
-  const pullRes = await fetch(
-    `/api/sync?since=${encodeURIComponent(lastSeq)}`,
-  );
+  const pullRes = await fetch(`/api/sync?since=${encodeURIComponent(lastSeq)}`);
   if (!pullRes.ok) throw new Error(`Sync pull failed: ${pullRes.status}`);
   const pullData = (await pullRes.json()) as {
     docs: TidatraDoc[];
