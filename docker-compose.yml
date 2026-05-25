@@ -8,12 +8,12 @@
 # Override the image tag (defaults to the major.minor channel produced by the
 # release workflow) or the published port via a sibling .env file:
 #
-#   TIDATRA_TAG=0.1
+#   TIDATRA_TAG=1.0
 #   TIDATRA_PORT=3000
 #
 services:
   app:
-    image: ghcr.io/danielraab/time-data-tracker:${TIDATRA_TAG:-0.1}
+    image: ghcr.io/danielraab/time-data-tracker:${TIDATRA_TAG:-1.0}
     container_name: tidatra
     restart: unless-stopped
     ports:
@@ -21,6 +21,15 @@ services:
     environment:
       NODE_ENV: production
       NEXT_TELEMETRY_DISABLED: "1"
+      DATABASE_URL: /app/data/tidatra.db
+      COUCHDB_URL: http://couchdb:5984
+      COUCHDB_USER: ${COUCHDB_USER:-admin}
+      COUCHDB_PASSWORD: ${COUCHDB_PASSWORD:?COUCHDB_PASSWORD is required}
+    volumes:
+      - tidatra-data:/app/data
+    depends_on:
+      couchdb:
+        condition: service_healthy
     healthcheck:
       test:
         - CMD
@@ -31,3 +40,27 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+
+  couchdb:
+    image: couchdb:3
+    container_name: tidatra-couchdb
+    restart: unless-stopped
+    environment:
+      COUCHDB_USER: ${COUCHDB_USER:-admin}
+      COUCHDB_PASSWORD: ${COUCHDB_PASSWORD:?COUCHDB_PASSWORD is required}
+    volumes:
+      - couchdb-data:/opt/couchdb/data
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -sf
+        - http://localhost:5984/_up
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  tidatra-data:
+  couchdb-data:

@@ -6,29 +6,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-05-25
+
 ### Added
 
-- **Authentication (Phase 2)**: sign-in via magic link (email) or OAuth — Google, GitHub,
-  and Authentik OIDC. Powered by `better-auth` with a local SQLite store.
-- **Magic-link email via SMTP**: any SMTP server can be used (configured through
-  `SMTP_HOST/PORT/USER/PASS/FROM` env vars). In development, the link is printed to the
-  server console when no SMTP host is set, so no mail server is needed to try the flow.
-- **Login page** (`/login`): email form for magic links and buttons for each OAuth
-  provider that is enabled through env vars. Providers absent from the environment are
-  hidden automatically — no code changes required.
-- **Account menu in header**: shows the signed-in user's name and a "Sign out" button
-  when authenticated; shows a "Sign in" link otherwise. App is fully usable while
-  signed out (local-only mode unchanged).
-- **Mailpit dev service**: the dev container now runs
-  [Mailpit](https://github.com/axllent/mailpit) on port 1025 (SMTP) / 8025 (web UI)
-  to catch outgoing magic-link emails locally. Port 8025 is forwarded to the host.
-- **`.env.example`** updated with all auth, SMTP, and OAuth variables; SMTP defaults
-  point to the Mailpit dev service.
+- **Backend-mediated CouchDB sync (Phase 3)**: data syncs bidirectionally between
+  the local PouchDB store and a per-user CouchDB database on the server whenever
+  the user is signed in and online.
+  - `GET /api/sync?since=<seq>` — incremental pull via the CouchDB `_changes` feed;
+    returns only live `series` and `entry` docs with the CouchDB revision stripped.
+  - `POST /api/sync` — push with last-write-wins on `updatedAt`; the server fetches
+    existing revisions and skips docs the server already has at the same or newer
+    version.
+  - Per-user database isolation: each account gets its own CouchDB database
+    (`tidatra_<userId>`), created automatically on first sync.
+  - Sequence-based checkpoint persisted in local PouchDB (`sync:checkpoint`) so
+    subsequent syncs transfer only the delta.
+  - **Guest → account migration**: on first login, all local series that still have
+    `ownerId: null` are claimed for the signed-in user before the first push.
+- **Automatic sync on data changes**: a `SyncProvider` in the app layout subscribes
+  to the PouchDB `changes` feed; any local write (series or entry create / edit /
+  delete) triggers a sync automatically after a 2-second debounce — no need to touch
+  individual mutation components.
+- **Sync button in header**: always-visible sync button in the app header.
+  - Idle: `RefreshCw` icon, clickable to trigger a manual sync.
+  - Syncing: animated spinner.
+  - Synced: green check mark, fades back to idle after 3 s.
+  - Error: red Wi-Fi-off icon, clickable to retry.
+  - Not signed in: button rendered but disabled with a "Sign in to sync" tooltip.
+- Sync also fires automatically on login and whenever the browser regains network
+  connectivity (`window.online` event).
+- **Authentication (Phase 2)**: sign-in via magic link (email) or OAuth — Google,
+  GitHub, and Authentik OIDC. Powered by `better-auth` with a local SQLite store.
+- **Magic-link email via SMTP**: any SMTP server; in development the link is printed
+  to the server console when no SMTP host is configured.
+- **Login page** (`/login`) and account menu in the header (name, sign-out).
+- **Mailpit dev service**: catches outgoing emails locally; port 8025 forwarded to host.
 
 ### Changed
 
+- `COUCHDB_URL` env var now holds the **base URL** of the CouchDB server (no database
+  path). Two new companion vars `COUCHDB_USER` and `COUCHDB_PASSWORD` carry the admin
+  credentials. The dev container defaults (`admin` / `password`) are pre-filled in
+  `.env.example`.
+- Removed the unused `GET /api/config` route and `lib/config.ts` module — the client
+  no longer needs the CouchDB URL because all sync is server-mediated.
+- Sync state management moved from `AppHeader` into a new `SyncProvider` /
+  `useSyncContext` React context so any component in the tree can read or trigger sync.
 - `AppHeader` converted to a client component to display live session state via
   `useSession()`.
+
+### Fixed
+
+- `server-only` package now aliased to a no-op stub in `vitest.config.ts` so
+  server-side modules (e.g. `lib/couch.ts`) can be imported in the Vitest test
+  environment without throwing.
 
 ## [0.3.0] - 2026-05-24
 
@@ -97,7 +129,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   to `master`.
 - **App footer**: displays the current app version and a link to the GitHub repository.
 
-[Unreleased]: https://github.com/draab/time-data-tracker/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/draab/time-data-tracker/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/draab/time-data-tracker/compare/v0.3.0...v1.0.0
 [0.3.0]: https://github.com/draab/time-data-tracker/compare/v0.2.0...v0.3.0
 [0.1.1]: https://github.com/draab/time-data-tracker/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/draab/time-data-tracker/releases/tag/v0.1.0
