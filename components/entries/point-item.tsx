@@ -22,7 +22,13 @@ import {
 import { t } from "@/lib/i18n/en";
 import type { Entry } from "@/lib/types";
 
-export function PointItem({ entry }: { entry: Entry }) {
+export function PointItem({
+  entry,
+  readOnly = false,
+}: {
+  entry: Entry;
+  readOnly?: boolean;
+}) {
   const isNumber = entry.entryType === "point_number";
   const [editing, setEditing] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
@@ -149,7 +155,7 @@ export function PointItem({ entry }: { entry: Entry }) {
           )}
         </div>
 
-        {!editing && (
+        {!editing && !readOnly && (
           <div className="flex shrink-0 items-center gap-1">
             <Button
               size="sm"

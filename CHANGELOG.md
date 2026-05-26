@@ -21,6 +21,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `point_label`), _Start duration_ (blank `span_start`), and _End duration_ (blank
   `span_end` linked to the most recent open start). The _End duration_ button is only
   shown when an open duration exists in the default series.
+- **Archive flag for series**: a series can be archived via the series detail header.
+  Archived series are hidden from the overview list and are fully read-only (no new
+  entries, no editing of existing entries, no renaming). Archiving the default series
+  auto-promotes the next active series as the new default. A "Show archived" toggle on
+  the home page reveals archived series in a separate section; archived series can be
+  unarchived or permanently deleted from their detail page.
+
+### Changed
+
+- **Responsive header buttons on the home page**: the "Add entry" and "New series"
+  buttons collapse to icon-only on small screens to avoid overflow on mobile. Labels
+  reappear on `sm` (≥ 640 px) and wider viewports.
+- **"Show archived" button placement**: moved from the header button group to a
+  full-width ghost button below the active series list, preventing the header from
+  overflowing on narrow screens.
 
 ## [1.1.2] - 2026-05-26
 

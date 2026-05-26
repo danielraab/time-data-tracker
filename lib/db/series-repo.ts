@@ -9,12 +9,22 @@ function normalizeTags(tags: string[]): string[] {
   ).sort((a, b) => a.localeCompare(b));
 }
 
+/** Returns all non-archived series, newest-first. */
 export async function listSeries(): Promise<Series[]> {
   const db = await getDb();
   const res = await db.find({ selector: { type: "series" } });
-  return (res.docs as Series[]).sort((a, b) =>
-    b.updatedAt.localeCompare(a.updatedAt),
-  );
+  return (res.docs as Series[])
+    .filter((s) => !s.isArchived)
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+}
+
+/** Returns all archived series, newest-first. */
+export async function listArchivedSeries(): Promise<Series[]> {
+  const db = await getDb();
+  const res = await db.find({ selector: { type: "series" } });
+  return (res.docs as Series[])
+    .filter((s) => !!s.isArchived)
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
 export async function getSeries(id: string): Promise<Series | null> {
@@ -88,6 +98,39 @@ export async function updateSeries(
   };
   const res = await db.put(updated);
   return { ...updated, _rev: res.rev };
+}
+
+/**
+ * Archives a series (read-only, hidden from the main overview). If it was the
+ * default series, the default is promoted to the next non-archived series.
+ */
+export async function archiveSeries(id: string): Promise<Series> {
+  const db = await getDb();
+  const series = (await db.get(id)) as Series;
+  const wasDefault = !!series.isDefault;
+  const now = nowIso();
+  await db.put({
+    ...series,
+    isArchived: true,
+    isDefault: false,
+    updatedAt: now,
+  });
+  if (wasDefault) {
+    const remaining = await listSeries();
+    if (remaining.length > 0) {
+      await db.put({ ...remaining[0], isDefault: true, updatedAt: now });
+    }
+  }
+  return (await db.get(id)) as Series;
+}
+
+/** Removes the archived flag from a series. */
+export async function unarchiveSeries(id: string): Promise<Series> {
+  const db = await getDb();
+  const series = (await db.get(id)) as Series;
+  const now = nowIso();
+  await db.put({ ...series, isArchived: false, updatedAt: now });
+  return (await db.get(id)) as Series;
 }
 
 /** Deletes a series and all of its entries. Promotes the next series to default

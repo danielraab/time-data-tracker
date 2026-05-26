@@ -2,12 +2,16 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Plus, Search, X } from "lucide-react";
+import { Archive, Plus, Search, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AddEntryFromDashboardDialog } from "@/components/entries/add-entry-dialog";
-import { useAllEntries, useSeriesList } from "@/lib/db/hooks";
+import {
+  useAllEntries,
+  useArchivedSeriesList,
+  useSeriesList,
+} from "@/lib/db/hooks";
 import { hasOpenSpan } from "@/lib/spans";
 import { t } from "@/lib/i18n/en";
 import type { Entry } from "@/lib/types";
@@ -15,10 +19,12 @@ import { SeriesCard } from "./series-card";
 
 export function SeriesList() {
   const { series, loading } = useSeriesList();
+  const { series: archivedSeries } = useArchivedSeriesList();
   const { entries } = useAllEntries();
   const [query, setQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [addEntryOpen, setAddEntryOpen] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
   const entriesBySeries = useMemo(() => {
     const map = new Map<string, Entry[]>();
@@ -76,12 +82,12 @@ export function SeriesList() {
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => setAddEntryOpen(true)}>
             <Plus className="size-4" />
-            {t.dashboard.addEntry}
+            <span className="hidden sm:inline">{t.dashboard.addEntry}</span>
           </Button>
           <Button asChild>
             <Link href="/series/new">
               <Plus className="size-4" />
-              {t.dashboard.newSeries}
+              <span className="hidden sm:inline">{t.dashboard.newSeries}</span>
             </Link>
           </Button>
         </div>
@@ -165,6 +171,36 @@ export function SeriesList() {
         open={addEntryOpen}
         onOpenChange={setAddEntryOpen}
       />
+
+      {archivedSeries.length > 0 && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full text-muted-foreground"
+          onClick={() => setShowArchived((v) => !v)}
+        >
+          <Archive className="size-4" />
+          {showArchived ? t.dashboard.hideArchived : t.dashboard.showArchived}
+        </Button>
+      )}
+
+      {showArchived && archivedSeries.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-sm font-medium text-muted-foreground">
+            {t.dashboard.archivedSection}
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-2 opacity-60">
+            {archivedSeries.map((s) => (
+              <SeriesCard
+                key={s._id}
+                series={s}
+                entryCount={entriesBySeries.get(s._id)?.length ?? 0}
+                hasOpenSpan={false}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

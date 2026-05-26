@@ -41,9 +41,14 @@ const NO_LINK = "__none__";
 interface OpenStartItemProps {
   entry: Entry;
   allEntries: Entry[];
+  readOnly?: boolean;
 }
 
-export function OpenStartItem({ entry, allEntries }: OpenStartItemProps) {
+export function OpenStartItem({
+  entry,
+  allEntries,
+  readOnly = false,
+}: OpenStartItemProps) {
   const now = useNow(10_000);
   const [editing, setEditing] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
@@ -232,7 +237,7 @@ export function OpenStartItem({ entry, allEntries }: OpenStartItemProps) {
           )}
         </div>
 
-        {!editing && (
+        {!editing && !readOnly && (
           <div className="flex shrink-0 items-center gap-1">
             <Button
               size="sm"
