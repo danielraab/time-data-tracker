@@ -89,6 +89,95 @@ Open [http://localhost:3000](http://localhost:3000).
 | `pnpm lint`  | Run ESLint                   |
 | `pnpm test`  | Run the Vitest test suite    |
 
+## Self-hosting
+
+The included `docker-compose.yml` runs the app and CouchDB together. No separate
+database server or build step is required — just Docker and a `.env` file.
+
+### Prerequisites
+
+- Docker Engine 24+ with the Compose plugin (`docker compose`)
+
+### 1. Create a `.env` file
+
+```bash
+# Public URL of your instance (used for OAuth callbacks and magic-link emails)
+BETTER_AUTH_URL=https://tidatra.your-domain.com
+
+# At least 32 random characters — generate with: openssl rand -base64 32
+BETTER_AUTH_SECRET=<generated-secret>
+
+# CouchDB credentials (same value used by both services)
+COUCHDB_USER=admin
+COUCHDB_PASSWORD=<strong-password>
+
+# Optional: pin a specific image tag (default: 1.0)
+# TIDATRA_TAG=1.0
+
+# Optional: change the published port (default: 3000)
+# TIDATRA_PORT=3000
+```
+
+For **magic-link email** sign-in, add SMTP credentials:
+
+```bash
+SMTP_HOST=smtp.your-domain.com
+SMTP_PORT=587
+SMTP_SECURE=false          # true for implicit TLS on port 465
+SMTP_USER=user@your-domain.com
+SMTP_PASS=<smtp-password>
+SMTP_FROM=TiDaTra <no-reply@your-domain.com>
+```
+
+For **OAuth providers**, add whichever you need:
+
+```bash
+# GitHub — OAuth App: https://github.com/settings/developers
+# Callback URL: ${BETTER_AUTH_URL}/api/auth/callback/github
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+
+# Google — https://console.cloud.google.com/apis/credentials
+# Callback URL: ${BETTER_AUTH_URL}/api/auth/callback/google
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+
+# Authentik / any OIDC provider
+# Callback URL: ${BETTER_AUTH_URL}/api/auth/oauth2/callback/authentik
+AUTHENTIK_CLIENT_ID=
+AUTHENTIK_CLIENT_SECRET=
+AUTHENTIK_ISSUER=https://auth.your-domain.com/application/o/tidatra
+```
+
+### 2. Start the stack
+
+```bash
+docker compose up -d
+docker compose logs -f   # optional: tail logs
+```
+
+The app is now available on `http://localhost:3000` (or the `TIDATRA_PORT` you chose).
+Put a reverse proxy (nginx, Caddy, Traefik, …) in front to terminate TLS.
+
+### 3. Update to a newer release
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+### Services and volumes
+
+| Service        | Container          | Description             |
+| -------------- | ------------------ | ----------------------- |
+| `app`          | `tidatra`          | Next.js application     |
+| `couchdb`      | `tidatra-couchdb`  | CouchDB 3 sync backend  |
+
+| Volume          | Mounted at              | Contents                            |
+| --------------- | ----------------------- | ----------------------------------- |
+| `tidatra-data`  | `/app/data`             | SQLite auth database                |
+| `couchdb-data`  | `/opt/couchdb/data`     | All CouchDB databases               |
+
 ## Project status
 
 | Phase | Description                                                                | Status      |
