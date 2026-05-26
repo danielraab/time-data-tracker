@@ -8,7 +8,13 @@ export async function register() {
   // runtime server starts handling requests.
   if (process.env.NEXT_PHASE === "phase-production-build") return;
 
-  const { getAuth } = await import("./lib/auth");
-  const ctx = await getAuth().$context;
-  await ctx.runMigrations();
+  const [{ getAuth }, { ensureSystemDbs }] = await Promise.all([
+    import("./lib/auth"),
+    import("./lib/couch"),
+  ]);
+
+  await Promise.all([
+    getAuth().$context.then((ctx) => ctx.runMigrations()),
+    ensureSystemDbs(),
+  ]);
 }
