@@ -1,12 +1,12 @@
 import "server-only";
 import { type NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
+import { getAuth } from "@/lib/auth";
 import { ensureUserDb, getChangesSince, putDocs } from "@/lib/couch";
 import type { TidatraDoc } from "@/lib/types";
 
 async function requireUserId(): Promise<string | null> {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getAuth().api.getSession({ headers: await headers() });
   return session?.user.id ?? null;
 }
 
