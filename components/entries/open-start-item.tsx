@@ -26,9 +26,12 @@ import {
 import { createEntry, deleteEntry, updateEntry } from "@/lib/db/entries-repo";
 import {
   formatDateTime,
+  formatDurationBetween,
+  formatDurationDetailed,
   fromDateTimeLocal,
   toDateTimeLocal,
 } from "@/lib/format";
+import { useNow } from "@/lib/use-now";
 import { orphanEndsAfter } from "@/lib/spans";
 import { t } from "@/lib/i18n/en";
 import type { Entry } from "@/lib/types";
@@ -41,6 +44,7 @@ interface OpenStartItemProps {
 }
 
 export function OpenStartItem({ entry, allEntries }: OpenStartItemProps) {
+  const now = useNow(10_000);
   const [editing, setEditing] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
   const [timeLocal, setTimeLocal] = useState(toDateTimeLocal(entry.timestamp));
@@ -106,7 +110,7 @@ export function OpenStartItem({ entry, allEntries }: OpenStartItemProps) {
   return (
     <li className="rounded-lg border border-amber-500/60 bg-amber-50/40 p-3 dark:bg-amber-500/5">
       <div className="flex items-start gap-3">
-        <div className="mt-1 text-muted-foreground">
+        <div className="mt-1 text-amber-500 dark:text-amber-400">
           <Play className="size-4" />
         </div>
 
@@ -122,6 +126,14 @@ export function OpenStartItem({ entry, allEntries }: OpenStartItemProps) {
               <AlertCircle className="size-3" />
               {t.entries.openSpanNote}
             </Badge>
+            {now && (
+              <Badge variant="outline" className="font-normal">
+                {formatDurationBetween(
+                  entry.timestamp,
+                  new Date(now).toISOString(),
+                )}
+              </Badge>
+            )}
             {entry.gps && (
               <>
                 <button
@@ -192,10 +204,30 @@ export function OpenStartItem({ entry, allEntries }: OpenStartItemProps) {
               </div>
             </div>
           ) : entry.label ? (
-            <p className="text-sm font-medium">{entry.label}</p>
+            <p className="text-sm font-medium">
+              {entry.label}
+              {now && (
+                <span className="ml-2 text-xs font-normal text-muted-foreground tabular-nums">
+                  {formatDurationDetailed(
+                    entry.timestamp,
+                    new Date(now).toISOString(),
+                  )}{" "}
+                  {t.entries.untilNow}
+                </span>
+              )}
+            </p>
           ) : (
             <p className="text-sm italic text-muted-foreground">
               {t.entries.types.span_start}
+              {now && (
+                <span className="ml-2 not-italic text-xs tabular-nums">
+                  {formatDurationDetailed(
+                    entry.timestamp,
+                    new Date(now).toISOString(),
+                  )}{" "}
+                  {t.entries.untilNow}
+                </span>
+              )}
             </p>
           )}
         </div>
@@ -207,9 +239,10 @@ export function OpenStartItem({ entry, allEntries }: OpenStartItemProps) {
               variant="secondary"
               onClick={handleCloseNow}
               disabled={busy}
+              aria-label={t.entries.closeSpan}
             >
               <Square className="size-4" />
-              {t.entries.closeSpan}
+              <span className="hidden sm:inline">{t.entries.closeSpan}</span>
             </Button>
             <Button
               size="sm"

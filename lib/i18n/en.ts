@@ -70,6 +70,7 @@ export const t = {
     noStartCandidates: "No starts available before this time.",
     noEndCandidates: "No ends available after this time.",
     pairedRange: "Duration",
+    untilNow: "until now",
     reversedSpan: "End is before start",
     locationMap: "Location on map",
     openInOsm: "Open in OpenStreetMap",
