@@ -5,8 +5,8 @@ import { magicLink } from "better-auth/plugins";
 import { genericOAuth } from "better-auth/plugins";
 import nodemailer from "nodemailer";
 
+/** Nodemailer transport — configured via SMTP_* env vars. */
 function createTransport() {
-  /** Nodemailer transport — configured via SMTP_* env vars. */
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT ?? "587"),
