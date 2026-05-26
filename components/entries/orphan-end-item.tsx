@@ -37,9 +37,14 @@ const NO_LINK = "__none__";
 interface OrphanEndItemProps {
   entry: Entry;
   allEntries: Entry[];
+  readOnly?: boolean;
 }
 
-export function OrphanEndItem({ entry, allEntries }: OrphanEndItemProps) {
+export function OrphanEndItem({
+  entry,
+  allEntries,
+  readOnly = false,
+}: OrphanEndItemProps) {
   const [editing, setEditing] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
   const [timeLocal, setTimeLocal] = useState(toDateTimeLocal(entry.timestamp));
@@ -184,7 +189,7 @@ export function OrphanEndItem({ entry, allEntries }: OrphanEndItemProps) {
           )}
         </div>
 
-        {!editing && (
+        {!editing && !readOnly && (
           <div className="flex shrink-0 items-center gap-1">
             <Button
               size="sm"

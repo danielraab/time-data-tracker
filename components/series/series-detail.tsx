@@ -66,7 +66,11 @@ export function SeriesDetail({ id }: { id: string }) {
         </h2>
         <Timeline
           entries={entries}
-          onPickTime={(ts) => openDialog({ timestamp: ts })}
+          onPickTime={
+            series.isArchived
+              ? undefined
+              : (ts) => openDialog({ timestamp: ts })
+          }
         />
       </section>
 
@@ -86,13 +90,15 @@ export function SeriesDetail({ id }: { id: string }) {
                 {t.series.showOnMap}
               </Button>
             )}
-            <Button size="sm" onClick={() => openDialog()}>
-              <Plus className="size-4" />
-              {t.entries.addEntry}
-            </Button>
+            {!series.isArchived && (
+              <Button size="sm" onClick={() => openDialog()}>
+                <Plus className="size-4" />
+                {t.entries.addEntry}
+              </Button>
+            )}
           </div>
         </div>
-        <EntryList entries={entries} />
+        <EntryList entries={entries} readOnly={!!series.isArchived} />
       </section>
 
       <AddEntryDialog

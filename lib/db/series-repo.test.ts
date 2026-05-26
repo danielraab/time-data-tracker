@@ -2,12 +2,15 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createTestDb, destroyTestDb } from "../../test/db-fixture";
 import { createEntry, listEntries } from "./entries-repo";
 import {
+  archiveSeries,
   createSeries,
   deleteSeries,
   getDefaultSeries,
   getSeries,
+  listArchivedSeries,
   listSeries,
   setDefaultSeries,
+  unarchiveSeries,
   updateSeries,
 } from "./series-repo";
 
@@ -133,5 +136,60 @@ describe("series repo", () => {
     const s = await createSeries({ title: "Only", description: "", tags: [] });
     await deleteSeries(s._id);
     expect(await getDefaultSeries()).toBeNull();
+  });
+});
+
+describe("archive / unarchive", () => {
+  beforeEach(async () => {
+    await createTestDb();
+  });
+  afterEach(async () => {
+    await destroyTestDb();
+  });
+
+  it("archived series is excluded from listSeries", async () => {
+    const s = await createSeries({ title: "A", description: "", tags: [] });
+    await archiveSeries(s._id);
+    expect(await listSeries()).toHaveLength(0);
+  });
+
+  it("archived series appears in listArchivedSeries", async () => {
+    const s = await createSeries({ title: "A", description: "", tags: [] });
+    await archiveSeries(s._id);
+    const archived = await listArchivedSeries();
+    expect(archived).toHaveLength(1);
+    expect(archived[0]._id).toBe(s._id);
+    expect(archived[0].isArchived).toBe(true);
+  });
+
+  it("unarchiveSeries restores series to active list", async () => {
+    const s = await createSeries({ title: "A", description: "", tags: [] });
+    await archiveSeries(s._id);
+    await unarchiveSeries(s._id);
+    expect(await listSeries()).toHaveLength(1);
+    expect(await listArchivedSeries()).toHaveLength(0);
+  });
+
+  it("archiving the default series promotes the next active series", async () => {
+    const a = await createSeries({ title: "A", description: "", tags: [] });
+    await new Promise((r) => setTimeout(r, 5));
+    const b = await createSeries({ title: "B", description: "", tags: [] });
+    expect(a.isDefault).toBe(true);
+
+    await archiveSeries(a._id);
+
+    const def = await getDefaultSeries();
+    expect(def?._id).toBe(b._id);
+  });
+
+  it("archiving a non-default series does not change the default", async () => {
+    const a = await createSeries({ title: "A", description: "", tags: [] });
+    const b = await createSeries({ title: "B", description: "", tags: [] });
+    expect(a.isDefault).toBe(true);
+
+    await archiveSeries(b._id);
+
+    const def = await getDefaultSeries();
+    expect(def?._id).toBe(a._id);
   });
 });

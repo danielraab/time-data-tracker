@@ -27,6 +27,8 @@ export interface Series extends BaseDoc {
   ownerId: string | null;
   /** Exactly one series per local database should have this set to true. */
   isDefault?: boolean;
+  /** Archived series are read-only and hidden from the main overview. */
+  isArchived?: boolean;
 }
 
 /** A single timestamped record inside a series. */

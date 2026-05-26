@@ -31,9 +31,14 @@ import type { Entry } from "@/lib/types";
 interface PairedSpanItemProps {
   start: Entry;
   end: Entry;
+  readOnly?: boolean;
 }
 
-export function PairedSpanItem({ start, end }: PairedSpanItemProps) {
+export function PairedSpanItem({
+  start,
+  end,
+  readOnly = false,
+}: PairedSpanItemProps) {
   const [editing, setEditing] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
   const [startLocal, setStartLocal] = useState(
@@ -213,7 +218,7 @@ export function PairedSpanItem({ start, end }: PairedSpanItemProps) {
           )}
         </div>
 
-        {!editing && (
+        {!editing && !readOnly && (
           <div className="flex shrink-0 items-center gap-1">
             <Button
               size="sm"

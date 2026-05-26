@@ -36,6 +36,9 @@ export const t = {
     quickAddStartDuration: "Start duration",
     quickAddEndDuration: "End duration",
     noDefaultSeries: "No default series. Create one to use quick add.",
+    showArchived: "Show archived",
+    hideArchived: "Hide archived",
+    archivedSection: "Archived series",
   },
   series: {
     createTitle: "New time series",
@@ -54,6 +57,11 @@ export const t = {
     mapPointCount: (n: number) => `${n} ${n === 1 ? "location" : "locations"}`,
     isDefault: "Default",
     setDefault: "Set as default",
+    archive: "Archive",
+    unarchive: "Unarchive",
+    archived: "Archived",
+    confirmArchive:
+      "Archive this series? It will be hidden from the overview and become read-only.",
   },
   entries: {
     heading: "Entries",

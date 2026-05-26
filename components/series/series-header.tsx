@@ -2,15 +2,17 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Pencil, Star, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, Pencil, Star, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  archiveSeries,
   deleteSeries,
   setDefaultSeries,
+  unarchiveSeries,
   updateSeries,
 } from "@/lib/db/series-repo";
 import { t } from "@/lib/i18n/en";
@@ -47,6 +49,15 @@ export function SeriesHeader({ series }: { series: Series }) {
     if (!window.confirm(t.common.confirmDelete)) return;
     await deleteSeries(series._id);
     router.push("/");
+  }
+
+  async function handleArchive() {
+    if (!window.confirm(t.series.confirmArchive)) return;
+    await archiveSeries(series._id);
+  }
+
+  async function handleUnarchive() {
+    await unarchiveSeries(series._id);
   }
 
   if (editing) {
@@ -90,6 +101,54 @@ export function SeriesHeader({ series }: { series: Series }) {
     );
   }
 
+  // Archived series: read-only view with Unarchive + Delete only.
+  if (series.isArchived) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <h1 className="text-2xl font-semibold tracking-tight truncate text-muted-foreground">
+              {series.title || t.series.untitled}
+            </h1>
+            <Badge variant="secondary" className="gap-1 shrink-0">
+              <Archive className="size-3" />
+              {t.series.archived}
+            </Badge>
+          </div>
+          <div className="flex shrink-0 gap-1">
+            <Button variant="ghost" size="sm" onClick={handleUnarchive}>
+              <ArchiveRestore className="size-4" />
+              {t.series.unarchive}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleDelete}
+              aria-label={t.series.deleteSeries}
+              className="text-destructive hover:text-destructive"
+            >
+              <Trash2 className="size-4" />
+            </Button>
+          </div>
+        </div>
+        {series.description && (
+          <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+            {series.description}
+          </p>
+        )}
+        {series.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {series.tags.map((tag) => (
+              <Badge key={tag} variant="secondary" className="font-normal">
+                {tag}
+              </Badge>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex items-start justify-between gap-3">
@@ -117,6 +176,9 @@ export function SeriesHeader({ series }: { series: Series }) {
           <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
             <Pencil className="size-4" />
             {t.common.edit}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={handleArchive}>
+            <Archive className="size-4" />
           </Button>
           <Button
             variant="ghost"

@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { getDb } from "./pouch";
-import { getDefaultSeries, getSeries, listSeries } from "./series-repo";
+import {
+  getDefaultSeries,
+  getSeries,
+  listArchivedSeries,
+  listSeries,
+} from "./series-repo";
 import { listAllEntries, listEntries } from "./entries-repo";
 import type { Entry, Series, TidatraDoc } from "@/lib/types";
 
@@ -108,6 +113,23 @@ export function useDefaultSeries(): {
   const [loading, setLoading] = useState(true);
   useLive(async (signal) => {
     const result = await getDefaultSeries();
+    if (!signal.cancelled) {
+      setSeries(result);
+      setLoading(false);
+    }
+  }, []);
+  return { series, loading };
+}
+
+/** Subscribes to all archived series. */
+export function useArchivedSeriesList(): {
+  series: Series[];
+  loading: boolean;
+} {
+  const [series, setSeries] = useState<Series[]>([]);
+  const [loading, setLoading] = useState(true);
+  useLive(async (signal) => {
+    const result = await listArchivedSeries();
     if (!signal.cancelled) {
       setSeries(result);
       setLoading(false);

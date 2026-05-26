@@ -10,6 +10,7 @@ import { PointItem } from "./point-item";
 
 interface EntryListProps {
   entries: Entry[];
+  readOnly?: boolean;
 }
 
 interface ResolvedSpans {
@@ -36,7 +37,7 @@ function resolveSpans(entries: Entry[]): ResolvedSpans {
   return { endByStartId, pairedEndIds };
 }
 
-export function EntryList({ entries }: EntryListProps) {
+export function EntryList({ entries, readOnly = false }: EntryListProps) {
   const { endByStartId, pairedEndIds } = useMemo(
     () => resolveSpans(entries),
     [entries],
@@ -71,13 +72,20 @@ export function EntryList({ entries }: EntryListProps) {
           entry.entryType === "point_label" ||
           entry.entryType === "point_number"
         ) {
-          return <PointItem key={entry._id} entry={entry} />;
+          return (
+            <PointItem key={entry._id} entry={entry} readOnly={readOnly} />
+          );
         }
         if (entry.entryType === "span_start") {
           const end = endByStartId.get(entry._id);
           if (end) {
             return (
-              <PairedSpanItem key={entry._id} start={entry} end={end} />
+              <PairedSpanItem
+                key={entry._id}
+                start={entry}
+                end={end}
+                readOnly={readOnly}
+              />
             );
           }
           return (
@@ -85,12 +93,18 @@ export function EntryList({ entries }: EntryListProps) {
               key={entry._id}
               entry={entry}
               allEntries={entries}
+              readOnly={readOnly}
             />
           );
         }
         // span_end (orphan — paired ends were filtered out above)
         return (
-          <OrphanEndItem key={entry._id} entry={entry} allEntries={entries} />
+          <OrphanEndItem
+            key={entry._id}
+            entry={entry}
+            allEntries={entries}
+            readOnly={readOnly}
+          />
         );
       })}
     </ul>
