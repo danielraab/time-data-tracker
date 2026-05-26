@@ -36,8 +36,8 @@ describe("auth route handler", () => {
     await GET(request);
     await POST(request);
 
-    expect(getAuth).toHaveBeenCalledTimes(2);
-    expect(toNextJsHandler).toHaveBeenCalledTimes(2);
+    expect(getAuth).toHaveBeenCalledTimes(1);
+    expect(toNextJsHandler).toHaveBeenCalledTimes(1);
     expect(get).toHaveBeenCalledWith(request);
     expect(post).toHaveBeenCalledWith(request);
   });
