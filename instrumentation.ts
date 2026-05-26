@@ -4,6 +4,8 @@
  * the app accepts requests.
  */
 export async function register() {
+  // Skip auth initialization during `next build`; it should only happen once the
+  // runtime server starts handling requests.
   if (process.env.NEXT_PHASE === "phase-production-build") return;
 
   const { getAuth } = await import("./lib/auth");
