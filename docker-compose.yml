@@ -42,6 +42,9 @@ services:
       AUTHENTIK_CLIENT_ID: ${AUTHENTIK_CLIENT_ID:-}
       AUTHENTIK_CLIENT_SECRET: ${AUTHENTIK_CLIENT_SECRET:-}
       AUTHENTIK_ISSUER: ${AUTHENTIK_ISSUER:-}
+    depends_on:
+      couchdb:
+        condition: service_healthy
     volumes:
       - tidatra-data:/app/data
     depends_on:
