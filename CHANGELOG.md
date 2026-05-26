@@ -30,6 +30,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **"New time series" opens in a modal**: clicking _New time series_ on the home page
+  now opens a dialog instead of navigating to a separate `/series/new` page. After
+  successful creation the dialog closes and the app navigates to the new series.
 - **Responsive header buttons on the home page**: the "Add entry" and "New series"
   buttons collapse to icon-only on small screens to avoid overflow on mobile. Labels
   reappear on `sm` (≥ 640 px) and wider viewports.

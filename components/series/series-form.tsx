@@ -10,8 +10,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { t } from "@/lib/i18n/en";
+import type { Series } from "@/lib/types";
 
-export function SeriesForm() {
+interface SeriesFormProps {
+  /** Called after successful creation. When omitted the router navigates to
+   *  the new series page instead (standalone-page behaviour). */
+  onSuccess?: (series: Series) => void;
+}
+
+export function SeriesForm({ onSuccess }: SeriesFormProps = {}) {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -26,7 +33,11 @@ export function SeriesForm() {
         setSaving(true);
         try {
           const series = await createSeries({ title, description, tags });
-          router.push(seriesPath(series));
+          if (onSuccess) {
+            onSuccess(series);
+          } else {
+            router.push(seriesPath(series));
+          }
         } catch {
           setSaving(false);
         }
