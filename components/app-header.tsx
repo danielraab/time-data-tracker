@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { t } from "@/lib/i18n/en";
 import { useSession, signOut } from "@/lib/auth-client";
+import { destroyDb } from "@/lib/db/pouch";
 import { useSyncContext, type SyncState } from "@/lib/db/sync-context";
 import { Button } from "@/components/ui/button";
 import {
@@ -168,6 +169,22 @@ export function AppHeader() {
                 >
                   <LogOutIcon />
                   {t.auth.signOut}
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  variant="destructive"
+                  onSelect={() =>
+                    destroyDb().then(() =>
+                      signOut({
+                        fetchOptions: {
+                          onSuccess: () => window.location.reload(),
+                        },
+                      }),
+                    )
+                  }
+                >
+                  <LogOutIcon />
+                  {t.auth.signOutAndClear}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
