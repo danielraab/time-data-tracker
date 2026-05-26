@@ -8,10 +8,10 @@ function getAuthHandlers() {
   return cachedAuthHandlers;
 }
 
-export async function GET(request: Request) {
+export function GET(request: Request) {
   return getAuthHandlers().GET(request);
 }
 
-export async function POST(request: Request) {
+export function POST(request: Request) {
   return getAuthHandlers().POST(request);
 }
