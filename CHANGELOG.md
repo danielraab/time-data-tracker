@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **"Sign out and clear local data" action**: a second logout button in the account
+  dropdown clears the local PouchDB database (`destroyDb`) before signing out, allowing
+  users to wipe all locally cached data from the device in one step.
+
 ## [1.1.2] - 2026-05-26
 
 ### Fixed

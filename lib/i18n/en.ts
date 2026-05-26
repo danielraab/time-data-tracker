@@ -99,6 +99,7 @@ export const t = {
   auth: {
     signIn: "Sign in",
     signOut: "Sign out",
+    signOutAndClear: "Clear data and sign out",
     signInTitle: "Sign in to TiDaTra",
     signInDescription: "Sign in to sync your data across devices.",
     emailLabel: "Email address",

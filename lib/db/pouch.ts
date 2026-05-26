@@ -31,9 +31,17 @@ export function getDb(): Promise<PouchDB.Database<TidatraDoc>> {
   return dbPromise;
 }
 
+/**
+ * Destroys the local PouchDB database and resets the singleton so a fresh
+ * database is created on the next `getDb()` call.
+ */
+export async function destroyDb(): Promise<void> {
+  const db = await getDb();
+  dbPromise = null;
+  await db.destroy();
+}
+
 /** Test-only hook: inject a pre-built database (e.g. an in-memory one). */
-export function _setDbForTests(
-  db: PouchDB.Database<TidatraDoc> | null,
-): void {
+export function _setDbForTests(db: PouchDB.Database<TidatraDoc> | null): void {
   dbPromise = db ? Promise.resolve(db) : null;
 }
