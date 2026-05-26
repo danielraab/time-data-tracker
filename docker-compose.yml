@@ -22,9 +22,26 @@ services:
       NODE_ENV: production
       NEXT_TELEMETRY_DISABLED: "1"
       DATABASE_URL: /app/data/tidatra.db
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:?BETTER_AUTH_URL is required}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET is required}
       COUCHDB_URL: http://couchdb:5984
       COUCHDB_USER: ${COUCHDB_USER:-admin}
       COUCHDB_PASSWORD: ${COUCHDB_PASSWORD:?COUCHDB_PASSWORD is required}
+      # SMTP (magic-link email) — leave blank to disable
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_SECURE: ${SMTP_SECURE:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      # OAuth providers — leave blank to disable
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      AUTHENTIK_CLIENT_ID: ${AUTHENTIK_CLIENT_ID:-}
+      AUTHENTIK_CLIENT_SECRET: ${AUTHENTIK_CLIENT_SECRET:-}
+      AUTHENTIK_ISSUER: ${AUTHENTIK_ISSUER:-}
     volumes:
       - tidatra-data:/app/data
     depends_on:
@@ -40,6 +57,8 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+    networks:
+      - default
 
   couchdb:
     image: couchdb:3
@@ -60,6 +79,12 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    networks:
+      - default
+
+networks:
+  default:
+    name: tidatra-network
 
 volumes:
   tidatra-data:
