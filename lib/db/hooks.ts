@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getDb } from "./pouch";
-import { getSeries, listSeries } from "./series-repo";
+import { getDefaultSeries, getSeries, listSeries } from "./series-repo";
 import { listAllEntries, listEntries } from "./entries-repo";
 import type { Entry, Series, TidatraDoc } from "@/lib/types";
 
@@ -22,11 +22,9 @@ function useLive(
       if (signal.cancelled) return;
       const db = await getDb();
       if (signal.cancelled) return;
-      changes = db
-        .changes({ since: "now", live: true })
-        .on("change", () => {
-          void load(signal);
-        });
+      changes = db.changes({ since: "now", live: true }).on("change", () => {
+        void load(signal);
+      });
     })();
     return () => {
       signal.cancelled = true;
@@ -49,7 +47,10 @@ export function useSeriesList(): { series: Series[]; loading: boolean } {
   return { series, loading };
 }
 
-export function useSeries(id: string): { series: Series | null; loading: boolean } {
+export function useSeries(id: string): {
+  series: Series | null;
+  loading: boolean;
+} {
   const [series, setSeries] = useState<Series | null>(null);
   const [loading, setLoading] = useState(true);
   useLive(
@@ -96,4 +97,21 @@ export function useAllEntries(): { entries: Entry[]; loading: boolean } {
     }
   }, []);
   return { entries, loading };
+}
+
+/** Subscribes to the series that has isDefault === true. */
+export function useDefaultSeries(): {
+  series: Series | null;
+  loading: boolean;
+} {
+  const [series, setSeries] = useState<Series | null>(null);
+  const [loading, setLoading] = useState(true);
+  useLive(async (signal) => {
+    const result = await getDefaultSeries();
+    if (!signal.cancelled) {
+      setSeries(result);
+      setLoading(false);
+    }
+  }, []);
+  return { series, loading };
 }

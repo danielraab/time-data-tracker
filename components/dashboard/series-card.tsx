@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { AlertCircle, Clock } from "lucide-react";
+import { AlertCircle, Clock, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { t } from "@/lib/i18n/en";
@@ -14,7 +14,11 @@ interface SeriesCardProps {
   hasOpenSpan: boolean;
 }
 
-export function SeriesCard({ series, entryCount, hasOpenSpan }: SeriesCardProps) {
+export function SeriesCard({
+  series,
+  entryCount,
+  hasOpenSpan,
+}: SeriesCardProps) {
   return (
     <Link
       href={seriesPath(series)}
@@ -29,13 +33,20 @@ export function SeriesCard({ series, entryCount, hasOpenSpan }: SeriesCardProps)
       >
         <CardHeader>
           <div className="flex items-start justify-between gap-3">
-            <CardTitle className="text-base">
-              {series.title || t.series.untitled}
-            </CardTitle>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <CardTitle className="text-base truncate">
+                {series.title || t.series.untitled}
+              </CardTitle>
+              {series.isDefault && (
+                <span title={t.series.isDefault}>
+                  <Star className="size-3.5 fill-amber-400 text-amber-400 shrink-0" />
+                </span>
+              )}
+            </div>
             {hasOpenSpan && (
               <Badge
                 variant="outline"
-                className="border-amber-500/60 text-amber-700 dark:text-amber-400"
+                className="border-amber-500/60 text-amber-700 dark:text-amber-400 shrink-0"
               >
                 <AlertCircle className="size-3" />
                 {t.dashboard.openSpan}
