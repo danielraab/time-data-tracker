@@ -1,11 +1,11 @@
 import { getAuth } from "@/lib/auth";
 import { toNextJsHandler } from "better-auth/next-js";
 
-let authHandlers: ReturnType<typeof toNextJsHandler> | undefined;
+let cachedAuthHandlers: ReturnType<typeof toNextJsHandler> | undefined;
 
 function getAuthHandlers() {
-  authHandlers ??= toNextJsHandler(getAuth());
-  return authHandlers;
+  cachedAuthHandlers ??= toNextJsHandler(getAuth());
+  return cachedAuthHandlers;
 }
 
 export async function GET(request: Request) {

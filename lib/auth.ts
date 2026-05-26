@@ -98,11 +98,11 @@ function createAuth() {
   });
 }
 
-let authInstance: ReturnType<typeof createAuth> | undefined;
+let cachedAuth: ReturnType<typeof createAuth> | undefined;
 
 export function getAuth(): ReturnType<typeof createAuth> {
-  if (!authInstance) authInstance = createAuth();
-  return authInstance;
+  if (!cachedAuth) cachedAuth = createAuth();
+  return cachedAuth;
 }
 
 export type Auth = ReturnType<typeof getAuth>;
