@@ -33,6 +33,23 @@ async function couchFetch(
   });
 }
 
+/** Creates the CouchDB system databases required on first startup. */
+export async function ensureSystemDbs(): Promise<void> {
+  const systemDbs = ["_users", "_replicator", "_global_changes"];
+  await Promise.all(
+    systemDbs.map(async (db) => {
+      const res = await couchFetch(`/${db}`, { method: "PUT" });
+      // 201 = created, 412 = already exists — both are fine
+      if (res.status !== 201 && res.status !== 412) {
+        const body = await res.text();
+        throw new Error(
+          `Failed to create CouchDB system database '${db}': ${res.status} ${body}`,
+        );
+      }
+    }),
+  );
+}
+
 /** Creates the per-user CouchDB database if it does not yet exist. */
 export async function ensureUserDb(userId: string): Promise<void> {
   const name = userDbName(userId);
