@@ -111,8 +111,8 @@ BETTER_AUTH_SECRET=<generated-secret>
 COUCHDB_USER=admin
 COUCHDB_PASSWORD=<strong-password>
 
-# Optional: pin a specific image tag (default: 1.0)
-# TIDATRA_TAG=1.0
+# Optional: pin a specific image tag (default: 1.1)
+# TIDATRA_TAG=1.1
 
 # Optional: change the published port (default: 3000)
 # TIDATRA_PORT=3000

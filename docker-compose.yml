@@ -8,12 +8,12 @@
 # Override the image tag (defaults to the major.minor channel produced by the
 # release workflow) or the published port via a sibling .env file:
 #
-#   TIDATRA_TAG=1.0
+#   TIDATRA_TAG=1.1
 #   TIDATRA_PORT=3000
 #
 services:
   app:
-    image: ghcr.io/danielraab/time-data-tracker:${TIDATRA_TAG:-1.0}
+    image: ghcr.io/danielraab/time-data-tracker:${TIDATRA_TAG:-1.1}
     container_name: tidatra
     restart: unless-stopped
     ports:
