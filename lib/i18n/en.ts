@@ -31,6 +31,11 @@ export const t = {
     entryCount: (n: number) => `${n} ${n === 1 ? "entry" : "entries"}`,
     openSpan: "Open duration",
     addEntry: "Add entry",
+    quickAdd: "Quick add",
+    quickAddPoint: "Add point",
+    quickAddStartDuration: "Start duration",
+    quickAddEndDuration: "End duration",
+    noDefaultSeries: "No default series. Create one to use quick add.",
   },
   series: {
     createTitle: "New time series",
@@ -47,6 +52,8 @@ export const t = {
     showOnMap: "Show on map",
     mapModalTitle: "Locations",
     mapPointCount: (n: number) => `${n} ${n === 1 ? "location" : "locations"}`,
+    isDefault: "Default",
+    setDefault: "Set as default",
   },
   entries: {
     heading: "Entries",

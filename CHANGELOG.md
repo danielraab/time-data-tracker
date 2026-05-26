@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **"Sign out and clear local data" action**: a second logout button in the account
   dropdown clears the local PouchDB database (`destroyDb`) before signing out, allowing
   users to wipe all locally cached data from the device in one step.
+- **Default series**: exactly one series is flagged as the default at all times. The
+  first series created is auto-promoted; `setDefaultSeries` moves the flag and clears it
+  from all others; deleting the default series promotes the next-newest remaining one.
+  The default is indicated by a ★ icon on the series card and the series detail header;
+  a ☆ button in the detail header lets users reassign the default.
+- **Quick-add bar on the home page**: three one-tap buttons above the series list add an
+  entry directly to the default series without opening a dialog — _Add point_ (blank
+  `point_label`), _Start duration_ (blank `span_start`), and _End duration_ (blank
+  `span_end` linked to the most recent open start). The _End duration_ button is only
+  shown when an open duration exists in the default series.
 
 ## [1.1.2] - 2026-05-26
 

@@ -25,6 +25,8 @@ export interface Series extends BaseDoc {
   tags: string[];
   /** null while the series only exists locally; set once synced to an account. */
   ownerId: string | null;
+  /** Exactly one series per local database should have this set to true. */
+  isDefault?: boolean;
 }
 
 /** A single timestamped record inside a series. */

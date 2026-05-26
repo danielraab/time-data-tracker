@@ -4,8 +4,10 @@ import { createEntry, listEntries } from "./entries-repo";
 import {
   createSeries,
   deleteSeries,
+  getDefaultSeries,
   getSeries,
   listSeries,
+  setDefaultSeries,
   updateSeries,
 } from "./series-repo";
 
@@ -85,5 +87,51 @@ describe("series repo", () => {
 
     expect(await getSeries(series._id)).toBeNull();
     expect(await listEntries(series._id)).toHaveLength(0);
+  });
+
+  // --- default series ---
+
+  it("first created series is automatically the default", async () => {
+    const s = await createSeries({ title: "First", description: "", tags: [] });
+    expect(s.isDefault).toBe(true);
+    const def = await getDefaultSeries();
+    expect(def?._id).toBe(s._id);
+  });
+
+  it("subsequent series are not the default by default", async () => {
+    await createSeries({ title: "A", description: "", tags: [] });
+    const b = await createSeries({ title: "B", description: "", tags: [] });
+    expect(b.isDefault).toBeFalsy();
+  });
+
+  it("setDefaultSeries switches the default and clears the old one", async () => {
+    const a = await createSeries({ title: "A", description: "", tags: [] });
+    const b = await createSeries({ title: "B", description: "", tags: [] });
+    expect(a.isDefault).toBe(true);
+
+    await setDefaultSeries(b._id);
+
+    const defNow = await getDefaultSeries();
+    expect(defNow?._id).toBe(b._id);
+    const aFetched = await getSeries(a._id);
+    expect(aFetched?.isDefault).toBeFalsy();
+  });
+
+  it("deleting the default series promotes the next newest to default", async () => {
+    const a = await createSeries({ title: "A", description: "", tags: [] });
+    await new Promise((r) => setTimeout(r, 5));
+    const b = await createSeries({ title: "B", description: "", tags: [] });
+    expect(a.isDefault).toBe(true);
+
+    await deleteSeries(a._id);
+
+    const def = await getDefaultSeries();
+    expect(def?._id).toBe(b._id);
+  });
+
+  it("deleting the only series leaves no default", async () => {
+    const s = await createSeries({ title: "Only", description: "", tags: [] });
+    await deleteSeries(s._id);
+    expect(await getDefaultSeries()).toBeNull();
   });
 });

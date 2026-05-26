@@ -2,13 +2,17 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Star, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { deleteSeries, updateSeries } from "@/lib/db/series-repo";
+import {
+  deleteSeries,
+  setDefaultSeries,
+  updateSeries,
+} from "@/lib/db/series-repo";
 import { t } from "@/lib/i18n/en";
 import type { Series } from "@/lib/types";
 import { TagInput } from "./tag-input";
@@ -89,10 +93,27 @@ export function SeriesHeader({ series }: { series: Series }) {
   return (
     <div className="space-y-3">
       <div className="flex items-start justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {series.title || t.series.untitled}
-        </h1>
+        <div className="flex items-center gap-2 min-w-0">
+          <h1 className="text-2xl font-semibold tracking-tight truncate">
+            {series.title || t.series.untitled}
+          </h1>
+          {series.isDefault && (
+            <span title={t.series.isDefault}>
+              <Star className="size-4 fill-amber-400 text-amber-400 shrink-0" />
+            </span>
+          )}
+        </div>
         <div className="flex shrink-0 gap-1">
+          {!series.isDefault && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setDefaultSeries(series._id)}
+              title={t.series.setDefault}
+            >
+              <Star className="size-4" />
+            </Button>
+          )}
           <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
             <Pencil className="size-4" />
             {t.common.edit}
