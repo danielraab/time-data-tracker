@@ -6,14 +6,20 @@ const getAuth = vi.fn(() => ({
     runMigrations,
   }),
 }));
+const ensureSystemDbs = vi.fn();
 
 vi.mock("./lib/auth", () => ({
   getAuth,
 }));
 
+vi.mock("./lib/couch", () => ({
+  ensureSystemDbs,
+}));
+
 afterEach(() => {
   getAuth.mockClear();
   runMigrations.mockClear();
+  ensureSystemDbs.mockClear();
   delete process.env.NEXT_RUNTIME;
   delete process.env.NEXT_PHASE;
 });
