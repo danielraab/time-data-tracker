@@ -5,8 +5,6 @@ import { magicLink } from "better-auth/plugins";
 import { genericOAuth } from "better-auth/plugins";
 import nodemailer from "nodemailer";
 
-let auth: ReturnType<typeof betterAuth> | undefined;
-
 function createTransport() {
   /** Nodemailer transport — configured via SMTP_* env vars. */
   return nodemailer.createTransport({
@@ -100,8 +98,10 @@ function createAuth() {
   });
 }
 
-export function getAuth() {
-  auth ??= createAuth();
+let auth: ReturnType<typeof createAuth> | undefined;
+
+export function getAuth(): ReturnType<typeof createAuth> {
+  if (!auth) auth = createAuth();
   return auth;
 }
 
