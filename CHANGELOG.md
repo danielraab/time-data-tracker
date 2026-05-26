@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-05-26
+
+### Fixed
+
+- **Production SQLite auth schema migration**: better-auth migrations now run
+  unconditionally during server startup instrumentation so production instances
+  reliably create the required auth tables.
+
 ## [1.1.0] - 2026-05-26
 
 ### Added
@@ -161,7 +169,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   to `master`.
 - **App footer**: displays the current app version and a link to the GitHub repository.
 
-[Unreleased]: https://github.com/draab/time-data-tracker/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/danielraab/time-data-tracker/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/danielraab/time-data-tracker/compare/v1.1.0...v1.1.1
+[1.1.0]: https://github.com/danielraab/time-data-tracker/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/draab/time-data-tracker/compare/v0.3.0...v1.0.0
 [0.3.0]: https://github.com/draab/time-data-tracker/compare/v0.2.0...v0.3.0
 [0.1.1]: https://github.com/draab/time-data-tracker/compare/v0.1.0...v0.1.1
