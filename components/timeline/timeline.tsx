@@ -58,8 +58,7 @@ export function Timeline({ entries, onPickTime }: TimelineProps) {
   const [dayOffset, setDayOffset] = useState(0);
 
   const day = useMemo<Date | null>(
-    () =>
-      now !== null ? addDays(startOfDay(new Date(now)), dayOffset) : null,
+    () => (now !== null ? addDays(startOfDay(new Date(now)), dayOffset) : null),
     [now, dayOffset],
   );
 
@@ -271,10 +270,7 @@ export function Timeline({ entries, onPickTime }: TimelineProps) {
           {/* Lane */}
           <div
             onClick={onPickTime ? handleLaneClick : undefined}
-            className={cn(
-              "relative flex-1",
-              onPickTime && "cursor-crosshair",
-            )}
+            className={cn("relative flex-1", onPickTime && "cursor-crosshair")}
           >
             {/* Hour gridlines */}
             {Array.from({ length: 24 }, (_, h) => (
@@ -294,11 +290,13 @@ export function Timeline({ entries, onPickTime }: TimelineProps) {
               const height = Math.max(4, yPos(s.clippedEnd) - top);
               const startIso = new Date(s.clippedStart).toISOString();
               const endIso = new Date(s.clippedEnd).toISOString();
-              const label = s.label || t.entries.types.span_start;
               return (
                 <div
                   key={s.id}
-                  title={label}
+                  title={
+                    s.label ??
+                    `${formatTime(startIso)} – ${s.open ? t.timeline.now : formatTime(endIso)}`
+                  }
                   className={cn(
                     "pointer-events-none absolute left-2 right-8 flex flex-col overflow-hidden rounded-md border px-2 py-1 leading-tight",
                     s.open
@@ -309,11 +307,25 @@ export function Timeline({ entries, onPickTime }: TimelineProps) {
                   )}
                   style={{ top: `${top}px`, height: `${height}px` }}
                 >
-                  <div className="truncate text-[11px] font-medium">
-                    {label}
-                  </div>
-                  {height >= 24 && (
-                    <div className="mt-0.5 truncate text-[10px] tabular-nums opacity-70">
+                  {s.label ? (
+                    <>
+                      <div className="truncate text-[11px] font-medium">
+                        {s.label}
+                      </div>
+                      {height >= 24 && (
+                        <div className="mt-0.5 truncate text-[10px] tabular-nums opacity-70">
+                          {s.continuesBefore ? "…" : formatTime(startIso)}
+                          {" – "}
+                          {s.continuesAfter
+                            ? "…"
+                            : s.open
+                              ? t.timeline.now
+                              : formatTime(endIso)}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="truncate text-[10px] tabular-nums opacity-70">
                       {s.continuesBefore ? "…" : formatTime(startIso)}
                       {" – "}
                       {s.continuesAfter
@@ -333,7 +345,9 @@ export function Timeline({ entries, onPickTime }: TimelineProps) {
                 key={entry._id}
                 title={entry.label || t.entries.types.span_end}
                 className="pointer-events-none absolute right-2 flex max-w-[60%] -translate-y-1/2 items-center gap-1"
-                style={{ top: `${yPos(new Date(entry.timestamp).getTime())}px` }}
+                style={{
+                  top: `${yPos(new Date(entry.timestamp).getTime())}px`,
+                }}
               >
                 <span className="size-2 shrink-0 rounded-sm bg-amber-500" />
                 <span className="truncate rounded bg-amber-500/90 px-1 text-[10px] text-white">
@@ -351,7 +365,9 @@ export function Timeline({ entries, onPickTime }: TimelineProps) {
                   entry.label ? ` · ${entry.label}` : ""
                 }${entry.value !== undefined ? ` · ${entry.value}` : ""}`}
                 className="pointer-events-none absolute left-2 right-2 flex -translate-y-1/2 items-center gap-2"
-                style={{ top: `${yPos(new Date(entry.timestamp).getTime())}px` }}
+                style={{
+                  top: `${yPos(new Date(entry.timestamp).getTime())}px`,
+                }}
               >
                 <span className="size-2 shrink-0 rounded-full bg-primary" />
                 <span className="truncate text-[11px] text-foreground">

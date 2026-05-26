@@ -6,6 +6,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-05-26
+
+### Added
+
+- **Precise duration display**: entry list now shows an exact duration alongside the
+  natural-language badge (e.g. `2h 15m 34s` next to "2 hours") for both completed
+  and open spans. A new `formatDurationDetailed` helper in `lib/format.ts` computes
+  this from millisecond difference.
+- **Live running duration for open spans**: `OpenStartItem` subscribes to a 10-second
+  clock tick via `useNow` and shows the elapsed time since the span started —
+  `37m 42s until now` — updated in real time without a page refresh.
+- **Running duration badge in open-span header**: a natural-language badge
+  (e.g. "37 minutes") appears in the metadata row while the span is open, giving
+  an at-a-glance overview without reading the content area.
+
+### Changed
+
+- **Entry list visual distinction**: completed spans now use a `Timer` icon and a
+  subtle primary-tinted background/border; open (in-progress) spans use an amber
+  `Play` icon matching the existing amber card tint. Point entries remain neutral,
+  making all three types immediately distinguishable at a glance.
+- **Detailed duration placed in content row**: the precise duration string is shown
+  inline after the label (or fallback type name) rather than in the crowded metadata
+  header row.
+- **Timeline: unlabelled spans show time range instead of type name**: when a span
+  has no user label the timeline block now renders the time range
+  (e.g. `14:30 – 15:45`) directly instead of the generic "Duration start" text.
+  Labelled spans still show the label with the time range below (for taller blocks).
+- **Mobile-friendly "End duration" button**: the button text is hidden on small screens
+  (`hidden sm:inline`) so only the stop icon is visible, preventing the action row from
+  overflowing on narrow viewports.
+
 ## [1.0.0] - 2026-05-25
 
 ### Added

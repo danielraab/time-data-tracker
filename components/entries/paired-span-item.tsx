@@ -7,7 +7,7 @@ import {
   Link2Off,
   MapPin,
   Pencil,
-  Play,
+  Timer,
   Trash2,
   TriangleAlert,
   X,
@@ -21,6 +21,7 @@ import { deleteEntry, updateEntry } from "@/lib/db/entries-repo";
 import {
   formatDateTime,
   formatDurationBetween,
+  formatDurationDetailed,
   fromDateTimeLocal,
   toDateTimeLocal,
 } from "@/lib/format";
@@ -92,13 +93,15 @@ export function PairedSpanItem({ start, end }: PairedSpanItemProps) {
 
   return (
     <li
-      className={`rounded-lg border bg-card p-3 ${
-        isReversed ? "border-destructive" : "border-border"
+      className={`rounded-lg border p-3 ${
+        isReversed
+          ? "border-destructive bg-card"
+          : "border-primary/30 bg-primary/5 dark:bg-primary/[0.07]"
       }`}
     >
       <div className="flex items-start gap-3">
-        <div className="mt-1 text-muted-foreground">
-          <Play className="size-4" />
+        <div className="mt-1 text-primary/60">
+          <Timer className="size-4" />
         </div>
 
         <div className="min-w-0 flex-1 space-y-1">
@@ -194,10 +197,18 @@ export function PairedSpanItem({ start, end }: PairedSpanItemProps) {
               </div>
             </div>
           ) : start.label ? (
-            <p className="text-sm font-medium">{start.label}</p>
+            <p className="text-sm font-medium">
+              {start.label}
+              <span className="ml-2 text-xs font-normal text-muted-foreground tabular-nums">
+                {formatDurationDetailed(start.timestamp, end.timestamp)}
+              </span>
+            </p>
           ) : (
             <p className="text-sm italic text-muted-foreground">
               {t.entries.pairedRange}
+              <span className="ml-2 not-italic text-xs tabular-nums">
+                {formatDurationDetailed(start.timestamp, end.timestamp)}
+              </span>
             </p>
           )}
         </div>
