@@ -24,6 +24,12 @@ function createAuth() {
     database: new Database(process.env.DATABASE_URL ?? "./tidatra.db"),
     baseURL: process.env.BETTER_AUTH_URL ?? "http://localhost:3000",
     secret: process.env.BETTER_AUTH_SECRET,
+    account: {
+      accountLinking: {
+        enabled: true,
+        trustedProviders: ["google", "github", "authentik"], // add your providers
+      },
+    },
 
     plugins: [
       magicLink({

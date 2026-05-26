@@ -1,4 +1,4 @@
-const CACHE = "tidatra-v1";
+const CACHE = "tidatra-v2";
 const APP_SHELL = ["/"];
 
 self.addEventListener("install", (event) => {
@@ -15,7 +15,9 @@ self.addEventListener("activate", (event) => {
     caches
       .keys()
       .then((keys) =>
-        Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key))),
+        Promise.all(
+          keys.filter((key) => key !== CACHE).map((key) => caches.delete(key)),
+        ),
       )
       .then(() => self.clients.claim()),
   );
@@ -24,7 +26,11 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
-  if (new URL(request.url).origin !== self.location.origin) return;
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+
+  // Auth and API endpoints must never be served from cache.
+  if (url.pathname.startsWith("/api/")) return;
 
   // Navigations: network-first, fall back to the cached page or app shell.
   if (request.mode === "navigate") {

@@ -6,6 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-05-26
+
+### Fixed
+
+- **Service worker caching auth endpoints**: the PWA service worker now bypasses all
+  `/api/*` routes and never serves them from cache. Previously, `GET /api/auth/*`
+  responses could be cached and replayed, breaking login on production. Cache version
+  bumped to `tidatra-v2` to force eviction of stale cached auth responses on existing clients.
+- **Instrumentation test isolation**: mocked `ensureSystemDbs` from `lib/couch` in
+  `instrumentation.test.ts` so the test no longer attempts a real CouchDB connection
+  on `127.0.0.1:5984` and passes without a running database.
+
 ## [1.1.1] - 2026-05-26
 
 ### Fixed
