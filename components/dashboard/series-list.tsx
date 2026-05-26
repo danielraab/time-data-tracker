@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Archive, Plus, Search, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AddEntryFromDashboardDialog } from "@/components/entries/add-entry-dialog";
+import { NewSeriesDialog } from "@/components/series/new-series-dialog";
 import {
   useAllEntries,
   useArchivedSeriesList,
@@ -24,6 +24,7 @@ export function SeriesList() {
   const [query, setQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [addEntryOpen, setAddEntryOpen] = useState(false);
+  const [newSeriesOpen, setNewSeriesOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
 
   const entriesBySeries = useMemo(() => {
@@ -84,11 +85,9 @@ export function SeriesList() {
             <Plus className="size-4" />
             <span className="hidden sm:inline">{t.dashboard.addEntry}</span>
           </Button>
-          <Button asChild>
-            <Link href="/series/new">
-              <Plus className="size-4" />
-              <span className="hidden sm:inline">{t.dashboard.newSeries}</span>
-            </Link>
+          <Button onClick={() => setNewSeriesOpen(true)}>
+            <Plus className="size-4" />
+            <span className="hidden sm:inline">{t.dashboard.newSeries}</span>
           </Button>
         </div>
       </div>
@@ -171,6 +170,8 @@ export function SeriesList() {
         open={addEntryOpen}
         onOpenChange={setAddEntryOpen}
       />
+
+      <NewSeriesDialog open={newSeriesOpen} onOpenChange={setNewSeriesOpen} />
 
       {archivedSeries.length > 0 && (
         <Button
