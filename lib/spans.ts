@@ -64,3 +64,35 @@ export function pairSpans(entries: Entry[]): SpanPair[] {
         ) ?? null,
     }));
 }
+
+/**
+ * Returns the total duration in milliseconds of all spans that overlap the
+ * given day window [dayStartMs, dayEndMs).
+ *
+ * Completed spans are clipped to the day bounds.
+ * Open spans (no end entry) contribute from their start (clamped to dayStart)
+ * up to `nowMs`, but only when `start.timestamp < nowMs`.
+ *
+ * Pure helper — exported for unit tests.
+ */
+export function sumDurationsForDay(
+  entries: Entry[],
+  dayStartMs: number,
+  dayEndMs: number,
+  nowMs: number,
+): number {
+  let total = 0;
+  for (const { start, end } of pairSpans(entries)) {
+    const startMs = new Date(start.timestamp).getTime();
+    const endMs: number | null = end
+      ? new Date(end.timestamp).getTime()
+      : startMs < nowMs
+        ? nowMs
+        : null;
+    if (endMs === null) continue;
+    const clippedStart = Math.max(startMs, dayStartMs);
+    const clippedEnd = Math.min(endMs, dayEndMs);
+    if (clippedEnd > clippedStart) total += clippedEnd - clippedStart;
+  }
+  return total;
+}

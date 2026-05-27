@@ -153,5 +153,6 @@ export const t = {
     yesterday: "Yesterday",
     tomorrow: "Tomorrow",
     jumpToToday: "Today",
+    totalDuration: "Total duration",
   },
 } as const;

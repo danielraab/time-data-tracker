@@ -25,7 +25,7 @@ export function formatDurationBetween(
   return formatDistanceStrict(new Date(endIso), new Date(startIso));
 }
 
-/** Precise duration, e.g. "2h 15m 34s" or "5m 02s" or "48s". */
+/** Duration in hours and minutes, e.g. "2h 15m" or "5m" or "< 1m". */
 export function formatDurationDetailed(
   startIso: string,
   endIso: string,
@@ -33,15 +33,13 @@ export function formatDurationDetailed(
   const diffMs = Math.abs(
     new Date(endIso).getTime() - new Date(startIso).getTime(),
   );
-  const totalSeconds = Math.floor(diffMs / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
+  const totalMinutes = Math.floor(diffMs / 60_000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
   const mm = String(minutes).padStart(2, "0");
-  const ss = String(seconds).padStart(2, "0");
-  if (hours > 0) return `${hours}h ${mm}m ${ss}s`;
-  if (minutes > 0) return `${minutes}m ${ss}s`;
-  return `${seconds}s`;
+  if (hours > 0) return `${hours}h ${mm}m`;
+  if (minutes > 0) return `${minutes}m`;
+  return "< 1m";
 }
 
 /** ISO string -> value for an <input type="datetime-local">. */
