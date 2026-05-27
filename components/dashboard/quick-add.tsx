@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { CircleDot, Play, Square } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { createEntry } from "@/lib/db/entries-repo";
 import { useDefaultSeries, useEntries } from "@/lib/db/hooks";
@@ -32,6 +33,7 @@ export function QuickAdd() {
       entryType: "point_label",
       timestamp: new Date().toISOString(),
     });
+    toast.success(t.dashboard.quickAddPointAdded);
   }
 
   async function startDuration() {
@@ -41,6 +43,7 @@ export function QuickAdd() {
       entryType: "span_start",
       timestamp: new Date().toISOString(),
     });
+    toast.success(t.dashboard.quickAddDurationStarted);
   }
 
   async function endDuration() {
@@ -51,6 +54,7 @@ export function QuickAdd() {
       timestamp: new Date().toISOString(),
       startEntryId: openStart._id,
     });
+    toast.success(t.dashboard.quickAddDurationEnded);
   }
 
   return (

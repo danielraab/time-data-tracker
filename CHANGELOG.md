@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Quick-add buttons on every series card**: each active series card on the home page
+  now shows icon-only action buttons (_Add point_ `CircleDot`, _Start duration_ `Play`)
+  at the bottom-right of the card. When an open duration exists for that series a _End
+  duration_ `Square` button also appears. Buttons use `e.stopPropagation()` so clicking
+  them does not navigate to the series detail page. Archived series cards show no
+  quick-add buttons.
+- **Toast feedback on quick-add actions**: a `sonner` success toast appears at the top
+  center after every quick-add button press ("Point added", "Duration started", "Duration
+  ended") — both from the default-series quick-add bar and from the per-card buttons.
+
 - **Drag-to-create duration on the timeline**: dragging (mouse/pen) along the timeline
   lane creates a new duration entry. A dashed preview rectangle shows the time range
   while dragging; releasing fires `onCreateDuration(startIso, endIso)`. Touch input
