@@ -6,7 +6,7 @@ import {
   useMemo,
   useRef,
   useState,
-  type MouseEvent,
+  type PointerEvent,
   type TouchEvent,
 } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -28,6 +28,8 @@ import type { Entry } from "@/lib/types";
 interface TimelineProps {
   entries: Entry[];
   onPickTime?: (iso: string) => void;
+  /** Called when the user drags on the lane to define a duration's bounds. */
+  onCreateDuration?: (startIso: string, endIso: string) => void;
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -38,6 +40,8 @@ const DAY_HEIGHT = 24 * HOUR_PX;
 const VIEWPORT_PX = 7 * HOUR_PX;
 const SWIPE_THRESHOLD = 50;
 const SWIPE_MAX_OFF_AXIS = 60;
+/** Minimum drag distance (px) to distinguish a drag gesture from a tap. */
+const DRAG_THRESHOLD_PX = 6;
 
 function dayLabel(date: Date): string {
   if (isToday(date)) return t.timeline.today;
@@ -46,7 +50,11 @@ function dayLabel(date: Date): string {
   return formatDayLabel(date);
 }
 
-export function Timeline({ entries, onPickTime }: TimelineProps) {
+export function Timeline({
+  entries,
+  onPickTime,
+  onCreateDuration,
+}: TimelineProps) {
   const now = useNow();
 
   /**
@@ -129,6 +137,82 @@ export function Timeline({ entries, onPickTime }: TimelineProps) {
   const nowY =
     now !== null && now >= dayStartMs && now <= dayEndMs ? yPos(now) : null;
 
+  /** Convert a y-pixel offset within the day lane to a UTC millisecond timestamp. */
+  function msFromLanePx(px: number): number {
+    return dayStartMs + Math.max(0, Math.min(1, px / DAY_HEIGHT)) * DAY_MS;
+  }
+
+  // Drag-to-create state
+  const dragAnchorRef = useRef<{
+    px: number;
+    ms: number;
+    pointerType: string;
+  } | null>(null);
+  const [dragPreview, setDragPreview] = useState<{
+    topPx: number;
+    heightPx: number;
+    startIso: string;
+    endIso: string;
+  } | null>(null);
+
+  function handleLanePointerDown(e: PointerEvent<HTMLDivElement>) {
+    if (!onPickTime && !onCreateDuration) return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    // Capture pointer for mouse/pen so move/up fire even outside the element.
+    // Do NOT capture touch — that would break the scroll container.
+    if (e.pointerType !== "touch") {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    }
+    const py = e.clientY - e.currentTarget.getBoundingClientRect().top;
+    dragAnchorRef.current = {
+      px: py,
+      ms: msFromLanePx(py),
+      pointerType: e.pointerType,
+    };
+  }
+
+  function handleLanePointerMove(e: PointerEvent<HTMLDivElement>) {
+    const anchor = dragAnchorRef.current;
+    if (!anchor || anchor.pointerType === "touch" || !onCreateDuration) return;
+    const py = e.clientY - e.currentTarget.getBoundingClientRect().top;
+    if (Math.abs(py - anchor.px) < DRAG_THRESHOLD_PX) return;
+    const curMs = msFromLanePx(py);
+    const startMs = Math.min(anchor.ms, curMs);
+    const endMs = Math.max(anchor.ms, curMs);
+    const topPx = yPos(startMs);
+    setDragPreview({
+      topPx,
+      heightPx: Math.max(4, yPos(endMs) - topPx),
+      startIso: new Date(startMs).toISOString(),
+      endIso: new Date(endMs).toISOString(),
+    });
+  }
+
+  function handleLanePointerUp(e: PointerEvent<HTMLDivElement>) {
+    const anchor = dragAnchorRef.current;
+    dragAnchorRef.current = null;
+    setDragPreview(null);
+    if (!anchor) return;
+    const py = e.clientY - e.currentTarget.getBoundingClientRect().top;
+    const isDrag =
+      anchor.pointerType !== "touch" &&
+      Math.abs(py - anchor.px) >= DRAG_THRESHOLD_PX;
+    if (isDrag && onCreateDuration) {
+      const curMs = msFromLanePx(py);
+      onCreateDuration(
+        new Date(Math.min(anchor.ms, curMs)).toISOString(),
+        new Date(Math.max(anchor.ms, curMs)).toISOString(),
+      );
+    } else if (!isDrag && onPickTime) {
+      onPickTime(new Date(anchor.ms).toISOString());
+    }
+  }
+
+  function handleLanePointerCancel() {
+    dragAnchorRef.current = null;
+    setDragPreview(null);
+  }
+
   const goPrev = useCallback(() => setDayOffset((o) => o - 1), []);
   const goNext = useCallback(() => setDayOffset((o) => o + 1), []);
   const goToday = useCallback(() => setDayOffset(0), []);
@@ -180,17 +264,6 @@ export function Timeline({ entries, onPickTime }: TimelineProps) {
     if (Math.abs(dy) > SWIPE_MAX_OFF_AXIS) return;
     if (dx > 0) goPrev();
     else goNext();
-  }
-
-  function handleLaneClick(event: MouseEvent<HTMLDivElement>) {
-    if (!onPickTime) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    const fraction = Math.max(
-      0,
-      Math.min(1, (event.clientY - rect.top) / rect.height),
-    );
-    const ms = dayStartMs + fraction * DAY_MS;
-    onPickTime(new Date(ms).toISOString());
   }
 
   const isOnToday = showingToday;
@@ -269,8 +342,19 @@ export function Timeline({ entries, onPickTime }: TimelineProps) {
 
           {/* Lane */}
           <div
-            onClick={onPickTime ? handleLaneClick : undefined}
-            className={cn("relative flex-1", onPickTime && "cursor-crosshair")}
+            onPointerDown={
+              onPickTime || onCreateDuration ? handleLanePointerDown : undefined
+            }
+            onPointerMove={onCreateDuration ? handleLanePointerMove : undefined}
+            onPointerUp={
+              onPickTime || onCreateDuration ? handleLanePointerUp : undefined
+            }
+            onPointerCancel={handleLanePointerCancel}
+            className={cn(
+              "relative flex-1",
+              (onPickTime || onCreateDuration) &&
+                (dragPreview ? "cursor-ns-resize" : "cursor-crosshair"),
+            )}
           >
             {/* Hour gridlines */}
             {Array.from({ length: 24 }, (_, h) => (
@@ -378,6 +462,22 @@ export function Timeline({ entries, onPickTime }: TimelineProps) {
               </div>
             ))}
 
+            {/* Drag preview */}
+            {dragPreview && (
+              <div
+                className="pointer-events-none absolute left-2 right-8 rounded-md border-2 border-dashed border-primary/70 bg-primary/10"
+                style={{
+                  top: `${dragPreview.topPx}px`,
+                  height: `${dragPreview.heightPx}px`,
+                }}
+              >
+                <div className="px-2 py-1 text-[10px] tabular-nums leading-tight text-primary/80">
+                  {formatTime(dragPreview.startIso)} –{" "}
+                  {formatTime(dragPreview.endIso)}
+                </div>
+              </div>
+            )}
+
             {/* Now line */}
             {nowY !== null && (
               <div
@@ -401,9 +501,11 @@ export function Timeline({ entries, onPickTime }: TimelineProps) {
           ? entries.length === 0
             ? t.timeline.empty
             : t.timeline.emptyDay
-          : onPickTime
-            ? t.timeline.clickHint
-            : null}
+          : onCreateDuration
+            ? t.timeline.dragHint
+            : onPickTime
+              ? t.timeline.clickHint
+              : null}
       </p>
     </div>
   );

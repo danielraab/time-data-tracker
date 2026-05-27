@@ -20,6 +20,9 @@ export function SeriesDetail({ id }: { id: string }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
   const [defaultTimestamp, setDefaultTimestamp] = useState<string>("");
+  const [defaultEndTimestamp, setDefaultEndTimestamp] = useState<
+    string | undefined
+  >();
   const [defaultType, setDefaultType] = useState<EntryType | undefined>();
 
   const mapPoints = useMemo(
@@ -36,8 +39,13 @@ export function SeriesDetail({ id }: { id: string }) {
     [entries],
   );
 
-  function openDialog(opts?: { timestamp?: string; type?: EntryType }) {
+  function openDialog(opts?: {
+    timestamp?: string;
+    endTimestamp?: string;
+    type?: EntryType;
+  }) {
     setDefaultTimestamp(opts?.timestamp ?? new Date().toISOString());
+    setDefaultEndTimestamp(opts?.endTimestamp);
     setDefaultType(opts?.type);
     setDialogOpen(true);
   }
@@ -70,6 +78,12 @@ export function SeriesDetail({ id }: { id: string }) {
             series.isArchived
               ? undefined
               : (ts) => openDialog({ timestamp: ts })
+          }
+          onCreateDuration={
+            series.isArchived
+              ? undefined
+              : (startIso, endIso) =>
+                  openDialog({ timestamp: startIso, endTimestamp: endIso })
           }
         />
       </section>
@@ -107,6 +121,7 @@ export function SeriesDetail({ id }: { id: string }) {
         seriesId={id}
         entries={entries}
         defaultTimestamp={defaultTimestamp}
+        defaultEndTimestamp={defaultEndTimestamp}
         defaultType={defaultType}
       />
 
