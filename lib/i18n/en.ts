@@ -142,6 +142,7 @@ export const t = {
     empty: "Add entries to see them on the timeline.",
     emptyDay: "No entries on this day.",
     clickHint: "Tap a time to add an entry there.",
+    dragHint: "Tap to add an entry · drag to create a duration.",
     now: "now",
     prevDay: "Previous day",
     nextDay: "Next day",

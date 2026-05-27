@@ -6,6 +6,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Drag-to-create duration on the timeline**: dragging (mouse/pen) along the timeline
+  lane creates a new duration entry. A dashed preview rectangle shows the time range
+  while dragging; releasing fires `onCreateDuration(startIso, endIso)`. Touch input
+  intentionally falls back to tap-to-add to avoid conflicting with scroll. A hint text
+  is shown at the bottom of the timeline when the callback is wired up.
+- **Full-duration mode in the Add Entry dialog**: when the dialog is opened via
+  drag-to-create, it pre-fills both start and end timestamps and saves a linked
+  `span_start` + `span_end` pair atomically on submit. The Point/Duration type toggle is
+  hidden in this mode; only the duration and GPS parts are shown.
+- **Add Entry sub-components extracted to own files** (`components/entries/add-entry-form/`):
+  `TypeSwitch`, `PointPart`, `DurationSinglePart` (single span_start or span_end),
+  `DurationFullPart` (linked start+end pair), and `GpsPart`. `AddEntryForm` in
+  `add-entry-dialog.tsx` is now a lean orchestrator that delegates rendering to these
+  focused components.
+
 ## [1.2.0] - 2026-05-26
 
 ### Added
