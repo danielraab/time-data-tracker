@@ -30,6 +30,8 @@ interface TimelineProps {
   onPickTime?: (iso: string) => void;
   /** Called when the user drags on the lane to define a duration's bounds. */
   onCreateDuration?: (startIso: string, endIso: string) => void;
+  /** Called when the displayed day changes, with the start-of-day Date. */
+  onDayChange?: (day: Date) => void;
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -54,6 +56,7 @@ export function Timeline({
   entries,
   onPickTime,
   onCreateDuration,
+  onDayChange,
 }: TimelineProps) {
   const now = useNow();
 
@@ -216,6 +219,12 @@ export function Timeline({
   const goPrev = useCallback(() => setDayOffset((o) => o - 1), []);
   const goNext = useCallback(() => setDayOffset((o) => o + 1), []);
   const goToday = useCallback(() => setDayOffset(0), []);
+
+  // Notify parent when the displayed day changes.
+  useEffect(() => {
+    if (day && onDayChange) onDayChange(day);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [day]);
 
   // Auto-scroll the day viewport to a useful position when the day changes:
   // - today: center "now"

@@ -6,7 +6,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-05-27
+
 ### Added
+
+- **Daily duration total on the series detail view**: below the timeline, the sum of all
+  duration spans that overlap the currently displayed day is shown as "Total duration: Xh
+  YYm". Open spans (no end entry) whose start is before the current time contribute their
+  elapsed time up to now. The total updates automatically as time passes (via `useNow`)
+  and disappears when the day has no duration data. Implemented via a new pure helper
+  `sumDurationsForDay` in `lib/spans.ts` and an `onDayChange` callback prop added to
+  `Timeline`.
+
+### Changed
+
+- **Duration display no longer shows seconds**: `formatDurationDetailed` now formats
+  durations as `"Xh YYm"`, `"Xm"`, or `"< 1m"` — seconds are omitted everywhere
+  (paired span items, open-start items, and the daily total).
 
 - **Quick-add buttons on every series card**: each active series card on the home page
   now shows icon-only action buttons (_Add point_ `CircleDot`, _Start duration_ `Play`)
