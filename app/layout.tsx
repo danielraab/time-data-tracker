@@ -5,6 +5,7 @@ import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 import { SyncProvider } from "@/lib/db/sync-context";
+import { Toaster } from "sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -55,6 +56,7 @@ export default function RootLayout({
           <AppFooter />
         </SyncProvider>
         <ServiceWorkerRegister />
+        <Toaster richColors closeButton position="top-center" />
       </body>
     </html>
   );

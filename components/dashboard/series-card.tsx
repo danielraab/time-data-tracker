@@ -1,9 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { AlertCircle, Clock, Star } from "lucide-react";
+import {
+  AlertCircle,
+  CircleDot,
+  Clock,
+  Play,
+  Square,
+  Star,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
+import { createEntry } from "@/lib/db/entries-repo";
 import { t } from "@/lib/i18n/en";
 import type { Series } from "@/lib/types";
 import { seriesPath } from "@/lib/url";
@@ -12,13 +22,50 @@ interface SeriesCardProps {
   series: Series;
   entryCount: number;
   hasOpenSpan: boolean;
+  openStartId?: string | null;
 }
 
 export function SeriesCard({
   series,
   entryCount,
   hasOpenSpan,
+  openStartId,
 }: SeriesCardProps) {
+  async function addPoint(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    await createEntry({
+      seriesId: series._id,
+      entryType: "point_label",
+      timestamp: new Date().toISOString(),
+    });
+    toast.success(t.dashboard.quickAddPointAdded);
+  }
+
+  async function startDuration(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    await createEntry({
+      seriesId: series._id,
+      entryType: "span_start",
+      timestamp: new Date().toISOString(),
+    });
+    toast.success(t.dashboard.quickAddDurationStarted);
+  }
+
+  async function endDuration(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!openStartId) return;
+    await createEntry({
+      seriesId: series._id,
+      entryType: "span_end",
+      timestamp: new Date().toISOString(),
+      startEntryId: openStartId,
+    });
+    toast.success(t.dashboard.quickAddDurationEnded);
+  }
+
   return (
     <Link
       href={seriesPath(series)}
@@ -60,21 +107,56 @@ export function SeriesCard({
               {series.description}
             </p>
           )}
-          <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1">
-              <Clock className="size-3" />
-              {t.dashboard.entryCount(entryCount)}
-            </span>
-            {series.tags.length > 0 && (
-              <span aria-hidden="true" className="text-muted-foreground/50">
-                ·
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1">
+                <Clock className="size-3" />
+                {t.dashboard.entryCount(entryCount)}
               </span>
+              {series.tags.length > 0 && (
+                <span aria-hidden="true" className="text-muted-foreground/50">
+                  ·
+                </span>
+              )}
+              {series.tags.map((tag) => (
+                <Badge key={tag} variant="secondary" className="font-normal">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+            {!series.isArchived && (
+              <div className="flex items-center gap-0.5 shrink-0">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  title={t.dashboard.quickAddPoint}
+                  onClick={addPoint}
+                >
+                  <CircleDot className="size-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  title={t.dashboard.quickAddStartDuration}
+                  onClick={startDuration}
+                >
+                  <Play className="size-4" />
+                </Button>
+                {openStartId && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    title={t.dashboard.quickAddEndDuration}
+                    onClick={endDuration}
+                  >
+                    <Square className="size-4" />
+                  </Button>
+                )}
+              </div>
             )}
-            {series.tags.map((tag) => (
-              <Badge key={tag} variant="secondary" className="font-normal">
-                {tag}
-              </Badge>
-            ))}
           </div>
         </CardContent>
       </Card>

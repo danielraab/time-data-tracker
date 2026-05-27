@@ -12,7 +12,7 @@ import {
   useArchivedSeriesList,
   useSeriesList,
 } from "@/lib/db/hooks";
-import { hasOpenSpan } from "@/lib/spans";
+import { hasOpenSpan, openStarts } from "@/lib/spans";
 import { t } from "@/lib/i18n/en";
 import type { Entry } from "@/lib/types";
 import { SeriesCard } from "./series-card";
@@ -57,6 +57,7 @@ export function SeriesList() {
           series: s,
           entryCount: seriesEntries.length,
           hasOpenSpan: hasOpenSpan(seriesEntries),
+          openStartId: openStarts(seriesEntries)[0]?._id ?? null,
         };
       })
       .sort((a, b) => {
@@ -155,12 +156,13 @@ export function SeriesList() {
         </p>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
-          {filtered.map(({ series, entryCount, hasOpenSpan }) => (
+          {filtered.map(({ series, entryCount, hasOpenSpan, openStartId }) => (
             <SeriesCard
               key={series._id}
               series={series}
               entryCount={entryCount}
               hasOpenSpan={hasOpenSpan}
+              openStartId={openStartId}
             />
           ))}
         </div>
