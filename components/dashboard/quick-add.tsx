@@ -1,18 +1,35 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { CircleDot, Play, Square } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { QuickLabelModal } from "@/components/entries/quick-label-modal";
 import { createEntry } from "@/lib/db/entries-repo";
 import { useDefaultSeries, useEntries } from "@/lib/db/hooks";
 import { t } from "@/lib/i18n/en";
 import { openStarts } from "@/lib/spans";
+import { consumeLongPress, useLongPress } from "@/lib/use-long-press";
 import { seriesPath } from "@/lib/url";
 
 export function QuickAdd() {
   const { series, loading } = useDefaultSeries();
   const { entries } = useEntries(series?._id ?? "");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalType, setModalType] = useState<"point_label" | "span_start">(
+    "point_label",
+  );
+
+  const pointLongPress = useLongPress(() => {
+    setModalType("point_label");
+    setModalOpen(true);
+  });
+
+  const durationLongPress = useLongPress(() => {
+    setModalType("span_start");
+    setModalOpen(true);
+  });
 
   if (loading) return null;
 
@@ -27,6 +44,7 @@ export function QuickAdd() {
   const openStart = openStarts(entries)[0] ?? null;
 
   async function addPoint() {
+    if (consumeLongPress(pointLongPress.isLongPress)) return;
     if (!series) return;
     await createEntry({
       seriesId: series._id,
@@ -37,6 +55,7 @@ export function QuickAdd() {
   }
 
   async function startDuration() {
+    if (consumeLongPress(durationLongPress.isLongPress)) return;
     if (!series) return;
     await createEntry({
       seriesId: series._id,
@@ -69,11 +88,21 @@ export function QuickAdd() {
         </Link>
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button variant="outline" size="sm" onClick={addPoint}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={addPoint}
+          {...pointLongPress.handlers}
+        >
           <CircleDot className="size-4" />
           {t.dashboard.quickAddPoint}
         </Button>
-        <Button variant="outline" size="sm" onClick={startDuration}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={startDuration}
+          {...durationLongPress.handlers}
+        >
           <Play className="size-4" />
           {t.dashboard.quickAddStartDuration}
         </Button>
@@ -84,6 +113,14 @@ export function QuickAdd() {
           </Button>
         )}
       </div>
+      {series && (
+        <QuickLabelModal
+          open={modalOpen}
+          onOpenChange={setModalOpen}
+          seriesId={series._id}
+          entryType={modalType}
+        />
+      )}
     </div>
   );
 }

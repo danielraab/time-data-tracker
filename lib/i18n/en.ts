@@ -39,6 +39,16 @@ export const t = {
     quickAddPointAdded: "Point added",
     quickAddDurationStarted: "Duration started",
     quickAddDurationEnded: "Duration ended",
+    quickLabel: {
+      pointTitle: "Add point",
+      durationTitle: "Start duration",
+      labelPlaceholder: "Label (optional)",
+      submit: "Add",
+      pointAdded: (label: string) =>
+        label ? `Point added: "${label}"` : "Point added",
+      durationStarted: (label: string) =>
+        label ? `Duration started: "${label}"` : "Duration started",
+    },
     showArchived: "Show archived",
     hideArchived: "Hide archived",
     archivedSection: "Archived series",
