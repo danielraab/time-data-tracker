@@ -6,6 +6,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-05-29
+
+### Added
+
+- **Long-press on quick-add buttons to enter a label**: pressing and holding any quick-add
+  button (_Add point_, _Start duration_, _End duration_) for 500 ms opens a **Quick Label**
+  modal instead of immediately saving. The modal shows a text input pre-populated with the
+  most recently used label for that series, lists the five most recent labels as one-click
+  chips, and confirms with Enter or the _Add_ button. A short press still saves immediately
+  with no label. Implemented via a new `useLongPress` hook (`lib/use-long-press.ts`) and a
+  new `QuickLabelModal` component (`components/entries/quick-label-modal.tsx`).
+
+### Removed
+
+- Unused default Next.js SVG icon files (`public/file.svg`, `globe.svg`, `next.svg`,
+  `vercel.svg`, `window.svg`, `app/favicon.ico`) removed from the repository.
+
 ## [1.3.0] - 2026-05-27
 
 ### Added
