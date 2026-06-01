@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.6.0] - 2026-06-01
+## [1.5.0] - 2026-06-01
 
 ### Added
 
@@ -26,6 +26,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dashboard overrun indicator**: the "Open duration" badge on each series card gains a
   small pulsing red dot when any open span in that series is overrunning. The indicator
   refreshes every 30 seconds.
+- **Quick-add series picker**: the series label in the Quick Add card is now an
+  interactive dropdown trigger. Clicking it opens a menu listing all non-archived series;
+  the current default is marked with a checkmark. Selecting a different series calls
+  `setDefaultSeries` and immediately switches the quick-add target without navigating away.
+  Each menu item also contains an external-link icon that navigates to the series detail
+  page. The picker is disabled while a switch is in flight to prevent race conditions.
 
 ### Changed
 
@@ -39,27 +45,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   system notifications.
 - **PWA manifest** (`app/manifest.ts`) adds `permissions_policy:
 "periodic-background-sync=(self)"`.
-
-### Added
-
-- **Quick-add series picker**: the series label in the Quick Add card is now an
-  interactive dropdown trigger. Clicking it opens a menu listing all non-archived series;
-  the current default is marked with a checkmark. Selecting a different series calls
-  `setDefaultSeries` and immediately switches the quick-add target without navigating away.
-  Each menu item also contains an external-link icon that navigates to the series detail
-  page. The picker is disabled while a switch is in flight to prevent race conditions.
-
-### Fixed
-
-- **Deleted entries and series now sync correctly across devices**: deletions were
-  previously invisible to the sync pipeline because PouchDB tombstones (`_deleted: true`)
-  are excluded from `db.find()` queries (used to gather docs to push) and were also
-  filtered out on the server side in `getChangesSince`. Switched to **soft delete**: a
-  `deletedAt` timestamp is written to the doc alongside an updated `updatedAt`, so deleted
-  docs flow through the normal last-write-wins push/pull cycle and are applied on all other
-  devices on the next sync. UI queries (`listEntries`, `listSeries`, `getSeries`, etc.)
-  filter out soft-deleted docs; `listAllEntries` / `listAllSeries` (sync-only) return the
-  full set.
 
 ### Changed
 
@@ -79,6 +64,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `SeriesCard`, `SeriesForm`, `SeriesHeader`, `OpenStartItem`, `PointItem`,
   `PairedSpanItem`, `OrphanEndItem`. The existing debounce remains as a fallback for any
   other writes. No-op when the user is not signed in.
+
+### Fixed
+
+- **Deleted entries and series now sync correctly across devices**: deletions were
+  previously invisible to the sync pipeline because PouchDB tombstones (`_deleted: true`)
+  are excluded from `db.find()` queries (used to gather docs to push) and were also
+  filtered out on the server side in `getChangesSince`. Switched to **soft delete**: a
+  `deletedAt` timestamp is written to the doc alongside an updated `updatedAt`, so deleted
+  docs flow through the normal last-write-wins push/pull cycle and are applied on all other
+  devices on the next sync. UI queries (`listEntries`, `listSeries`, `getSeries`, etc.)
+  filter out soft-deleted docs; `listAllEntries` / `listAllSeries` (sync-only) return the
+  full set.
 
 ## [1.4.0] - 2026-05-29
 
