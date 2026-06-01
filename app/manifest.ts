@@ -10,9 +10,6 @@ export default function manifest(): MetadataRoute.Manifest {
     display: "standalone",
     background_color: "#ffffff",
     theme_color: "#171717",
-    // Declare permission policy for Periodic Background Sync.
-    // Chrome uses this to gate the API under certain conditions.
-    permissions_policy: "periodic-background-sync=(self)",
     icons: [
       {
         src: "/icon.svg",

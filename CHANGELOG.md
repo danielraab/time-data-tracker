@@ -43,8 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Service worker** (`public/sw.js`) handles the `periodicsync` event tagged
   `tidatra-sync`: triggers `/api/sync` followed by `/api/notify-overrun` and dispatches
   system notifications.
-- **PWA manifest** (`app/manifest.ts`) adds `permissions_policy:
-"periodic-background-sync=(self)"`.
+- **Security headers** (`next.config.ts`) now include
+  `Permissions-Policy: periodic-background-sync=(self)`.
 
 ### Changed
 
