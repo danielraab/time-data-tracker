@@ -6,6 +6,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Trash view for soft-deleted content**: a dedicated `/trash` page (linked from
+  the app footer) lists all soft-deleted series and entries. Deleted series show their
+  title, description, tags, deletion age, child-entry count, and a purge-eligibility
+  badge. Standalone deleted entries (whose series is still active) show their
+  timestamp, label/value, and parent series name.
+- **Edit and restore from trash**: each trash item exposes an inline edit form —
+  series can have their title, description, and tags updated while remaining
+  soft-deleted (`deletedAt` is preserved); entries can have their timestamp and
+  label/value updated. A separate **Restore** action clears `deletedAt` and moves
+  the item back into the active views.
+- **Purge-eligibility badge**: items soft-deleted for more than 30 days are marked
+  "Eligible for purge"; items still within the window show "Purge in N day(s)".
+- **Manual purge action**: each trash item shows a **Purge now** button that
+  permanently hard-deletes the doc from local PouchDB. Purging a series cascades
+  to all its child entries in a single pass.
+- **Owner-only destructive actions**: purge is limited to the owner of the record
+  (`series.ownerId`). Local-only series (`ownerId: null`) can be purged by anyone.
+  Non-owners see an explanatory note instead of the purge button. Restore and edit
+  are not subject to the owner guard.
+- **Automatic 30-day purge flush**: during every authenticated sync cycle, any
+  soft-deleted doc older than 30 days that the user owns is automatically
+  hard-deleted — from the per-user CouchDB database first (via the new
+  `POST /api/purge` endpoint), then from local PouchDB. The flush is best-effort:
+  errors are swallowed so sync is never blocked.
+- **`POST /api/purge`**: new server route that accepts `{ docIds: string[] }` and
+  hard-deletes those documents from the authenticated user's CouchDB database using
+  `_bulk_docs` with `_deleted: true`.
+
+### Changed
+
+- **`purgeSeries` cascades to entries**: hard-deleting a series from the trash
+  removes all entries belonging to that series in the same operation, leaving no
+  orphaned records.
+- **Soft-delete replication unchanged**: docs inside the 30-day window continue to
+  sync via `deletedAt` as before; the purge pass is a separate hard-delete path that
+  does not affect normal replication.
+
 ## [1.5.0] - 2026-06-01
 
 ### Added

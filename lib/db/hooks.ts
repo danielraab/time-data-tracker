@@ -9,6 +9,7 @@ import {
   listSeries,
 } from "./series-repo";
 import { listAllEntries, listEntries } from "./entries-repo";
+import { groupTrashItems, type TrashGroup } from "./trash";
 import type { Entry, Series, TidatraDoc } from "@/lib/types";
 
 /**
@@ -136,4 +137,34 @@ export function useArchivedSeriesList(): {
     }
   }, []);
   return { series, loading };
+}
+
+/** Subscribes to the full trash state: grouped deleted series + standalone deleted entries. */
+export function useTrashItems(): {
+  seriesGroups: TrashGroup[];
+  standaloneEntries: Entry[];
+  loading: boolean;
+} {
+  const [seriesGroups, setSeriesGroups] = useState<TrashGroup[]>([]);
+  const [standaloneEntries, setStandaloneEntries] = useState<Entry[]>([]);
+  const [loading, setLoading] = useState(true);
+  useLive(async (signal) => {
+    const result = await groupTrashItems();
+    if (!signal.cancelled) {
+      setSeriesGroups(result.seriesGroups);
+      setStandaloneEntries(result.standaloneEntries);
+      setLoading(false);
+    }
+  }, []);
+  return { seriesGroups, standaloneEntries, loading };
+}
+
+/** Looks up all series (including archived, excluding deleted) by id. */
+export function useAllSeriesMap(): Map<string, Series> {
+  const [map, setMap] = useState<Map<string, Series>>(new Map());
+  useLive(async (signal) => {
+    const result = await listSeries();
+    if (!signal.cancelled) setMap(new Map(result.map((s) => [s._id, s])));
+  }, []);
+  return map;
 }

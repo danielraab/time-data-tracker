@@ -62,3 +62,21 @@ export async function deleteEntry(id: string): Promise<void> {
   const now = nowIso();
   await db.put({ ...doc, deletedAt: now, updatedAt: now });
 }
+
+/** Clears deletedAt on a soft-deleted entry, moving it back into active views. */
+export async function restoreEntry(id: string): Promise<Entry> {
+  const db = await getDb();
+  const doc = (await db.get(id)) as Entry;
+  const now = nowIso();
+  const { deletedAt: _removed, ...rest } = doc;
+  void _removed;
+  await db.put({ ...rest, updatedAt: now });
+  return (await db.get(id)) as Entry;
+}
+
+/** Permanently hard-deletes a single entry from local PouchDB. */
+export async function purgeEntry(id: string): Promise<void> {
+  const db = await getDb();
+  const doc = await db.get(id);
+  await db.remove(doc._id, doc._rev!);
+}

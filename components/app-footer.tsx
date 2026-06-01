@@ -1,3 +1,4 @@
+import Link from "next/link";
 import pkg from "@/package.json";
 import { t } from "@/lib/i18n/en";
 
@@ -27,6 +28,12 @@ export function AppFooter() {
         <span>
           {t.app.name} {t.app.versionLabel(pkg.version)}
         </span>
+        <span aria-hidden className="text-border">
+          ·
+        </span>
+        <Link href="/trash" className="hover:text-foreground">
+          {t.trash.trashLink}
+        </Link>
         <span aria-hidden className="text-border">
           ·
         </span>

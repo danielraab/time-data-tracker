@@ -3,6 +3,7 @@
 import { getDb } from "./pouch";
 import { listAllSeries, listSeries } from "./series-repo";
 import { listAllEntries } from "./entries-repo";
+import { isPurgeEligible, isOwner } from "./trash";
 import type { TidatraDoc, Series } from "@/lib/types";
 
 /** Persisted sync state stored as an internal doc in the local PouchDB. */
@@ -171,6 +172,42 @@ export async function runSync(userId: string): Promise<SyncResult> {
   // 6. Persist checkpoint
   const now = new Date().toISOString();
   await saveCheckpoint(userId, now, pullData.lastSeq ?? "0", checkpoint?._rev);
+
+  // 7. Best-effort purge: hard-delete stale soft-deleted docs (30-day retention).
+  //    Server delete runs first so a subsequent pull can't re-import the docs.
+  //    Errors here are intentionally swallowed — purge failure must not block sync.
+  try {
+    const [allSeries, allEntries] = await Promise.all([
+      listAllSeries(),
+      listAllEntries(),
+    ]);
+    const purgeableSeries = allSeries.filter(
+      (s) => s.deletedAt && isPurgeEligible(s.deletedAt) && isOwner(s.ownerId, userId),
+    );
+    // For entries, ownership is determined by the parent series.
+    const seriesOwnerMap = new Map(allSeries.map((s) => [s._id, s.ownerId]));
+    const purgeableEntries = allEntries.filter((e) => {
+      if (!e.deletedAt || !isPurgeEligible(e.deletedAt)) return false;
+      return isOwner(seriesOwnerMap.get(e.seriesId) ?? null, userId);
+    });
+
+    const allPurgeable = [...purgeableSeries, ...purgeableEntries];
+    if (allPurgeable.length > 0) {
+      const docIds = allPurgeable.map((d) => d._id);
+      const res = await fetch("/api/purge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ docIds }),
+      });
+      if (res.ok) {
+        await Promise.all(
+          allPurgeable.map((d) => db.remove(d._id, d._rev!)),
+        );
+      }
+    }
+  } catch {
+    // intentionally swallowed
+  }
 
   return { pushed, pulled };
 }
