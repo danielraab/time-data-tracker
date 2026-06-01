@@ -29,6 +29,14 @@ const SyncContext = createContext<SyncContextValue>({
 /** Debounce delay (ms) between a local PouchDB write and the automatic sync. */
 const AUTO_SYNC_DEBOUNCE_MS = 2_000;
 
+/** Foreground periodic sync interval (ms) — how often the in-tab timer fires
+ *  while the user is signed in. 1 minute. Independent of the background sync. */
+const FOREGROUND_SYNC_INTERVAL_MS = 60_000;
+
+/** Periodic Background Sync minInterval (ms) — exported so
+ *  service-worker-register.tsx can use the same value. 5 minutes. */
+export const SYNC_INTERVAL_MS = 300_000;
+
 export function SyncProvider({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
   const userId = session?.user.id ?? null;
@@ -76,6 +84,16 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener("online", trigger);
     return () => window.removeEventListener("online", trigger);
   }, [trigger]);
+
+  // Foreground periodic sync — fires every FOREGROUND_SYNC_INTERVAL_MS (1 min)
+  // while signed in. Covers all browsers. Independent of the Periodic Background
+  // Sync (which uses SYNC_INTERVAL_MS and runs only in Chromium when the tab is
+  // closed). Safe to call: trigger() is a no-op when syncInProgressRef is true.
+  useEffect(() => {
+    if (!userId) return;
+    const id = setInterval(trigger, FOREGROUND_SYNC_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [trigger, userId]);
 
   // Auto-sync after any local PouchDB write (debounced)
   useEffect(() => {
