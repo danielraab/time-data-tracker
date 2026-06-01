@@ -1,7 +1,7 @@
 "use client";
 
 import { getDb } from "./pouch";
-import { listSeries } from "./series-repo";
+import { listAllSeries, listSeries } from "./series-repo";
 import { listAllEntries } from "./entries-repo";
 import type { TidatraDoc, Series } from "@/lib/types";
 
@@ -133,8 +133,11 @@ export async function runSync(userId: string): Promise<SyncResult> {
   // 1. Claim any still-unclaimed local series
   await claimLocalSeries(userId);
 
-  // 2. Gather local docs to push
-  const [series, entries] = await Promise.all([listSeries(), listAllEntries()]);
+  // 2. Gather local docs to push (all series + entries, including soft-deleted)
+  const [series, entries] = await Promise.all([
+    listAllSeries(),
+    listAllEntries(),
+  ]);
   const allLocal: TidatraDoc[] = [...series, ...entries];
   const toPush = lastSync
     ? allLocal.filter((d) => d.updatedAt > lastSync)

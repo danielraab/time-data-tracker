@@ -6,11 +6,12 @@ const nowIso = () => new Date().toISOString();
 export async function listEntries(seriesId: string): Promise<Entry[]> {
   const db = await getDb();
   const res = await db.find({ selector: { type: "entry", seriesId } });
-  return (res.docs as Entry[]).sort((a, b) =>
-    a.timestamp.localeCompare(b.timestamp),
-  );
+  return (res.docs as Entry[])
+    .filter((e) => !e.deletedAt)
+    .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
 }
 
+/** Returns all entries including soft-deleted ones (used by sync). */
 export async function listAllEntries(): Promise<Entry[]> {
   const db = await getDb();
   const res = await db.find({ selector: { type: "entry" } });
@@ -57,5 +58,7 @@ export async function updateEntry(
 
 export async function deleteEntry(id: string): Promise<void> {
   const db = await getDb();
-  await db.remove(await db.get(id));
+  const doc = await db.get(id);
+  const now = nowIso();
+  await db.put({ ...doc, deletedAt: now, updatedAt: now });
 }
