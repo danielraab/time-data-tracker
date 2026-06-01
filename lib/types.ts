@@ -15,6 +15,8 @@ interface BaseDoc {
   _rev?: string;
   createdAt: string;
   updatedAt: string;
+  /** Set when the doc is soft-deleted; used to propagate deletions via sync. */
+  deletedAt?: string;
 }
 
 /** A named collection of timestamped entries. */

@@ -1,12 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createTestDb, destroyTestDb } from "../../test/db-fixture";
-import { createEntry, listEntries } from "./entries-repo";
+import { createEntry, listAllEntries, listEntries } from "./entries-repo";
 import {
   archiveSeries,
   createSeries,
   deleteSeries,
   getDefaultSeries,
   getSeries,
+  listAllSeries,
   listArchivedSeries,
   listSeries,
   setDefaultSeries,
@@ -88,8 +89,16 @@ describe("series repo", () => {
 
     await deleteSeries(series._id);
 
+    // Series is soft-deleted: getSeries returns null but doc is still in DB
     expect(await getSeries(series._id)).toBeNull();
+    // Entries are hidden from list queries
     expect(await listEntries(series._id)).toHaveLength(0);
+    // But docs survive in listAllSeries / listAllEntries for sync
+    const allSeries = await listAllSeries();
+    const deleted = allSeries.find((s) => s._id === series._id);
+    expect(deleted?.deletedAt).toBeTruthy();
+    const allEntries = await listAllEntries();
+    expect(allEntries.every((e) => e.deletedAt)).toBe(true);
   });
 
   // --- default series ---

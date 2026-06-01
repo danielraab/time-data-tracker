@@ -9,28 +9,36 @@ function normalizeTags(tags: string[]): string[] {
   ).sort((a, b) => a.localeCompare(b));
 }
 
-/** Returns all non-archived series, newest-first. */
+/** Returns all non-archived, non-deleted series, newest-first. */
 export async function listSeries(): Promise<Series[]> {
   const db = await getDb();
   const res = await db.find({ selector: { type: "series" } });
   return (res.docs as Series[])
-    .filter((s) => !s.isArchived)
+    .filter((s) => !s.isArchived && !s.deletedAt)
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
-/** Returns all archived series, newest-first. */
+/** Returns all archived (non-deleted) series, newest-first. */
 export async function listArchivedSeries(): Promise<Series[]> {
   const db = await getDb();
   const res = await db.find({ selector: { type: "series" } });
   return (res.docs as Series[])
-    .filter((s) => !!s.isArchived)
+    .filter((s) => !!s.isArchived && !s.deletedAt)
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+}
+
+/** Returns all series including archived and soft-deleted ones (used by sync). */
+export async function listAllSeries(): Promise<Series[]> {
+  const db = await getDb();
+  const res = await db.find({ selector: { type: "series" } });
+  return res.docs as Series[];
 }
 
 export async function getSeries(id: string): Promise<Series | null> {
   const db = await getDb();
   try {
-    return (await db.get(id)) as Series;
+    const doc = (await db.get(id)) as Series;
+    return doc.deletedAt ? null : doc;
   } catch {
     return null;
   }
@@ -140,15 +148,15 @@ export async function deleteSeries(id: string): Promise<void> {
   const series = (await db.get(id)) as Series;
   const wasDefault = !!series.isDefault;
   const entries = await db.find({ selector: { type: "entry", seriesId: id } });
+  const now = nowIso();
   await db.bulkDocs([
-    ...entries.docs.map((doc) => ({ ...doc, _deleted: true })),
-    { ...series, _deleted: true },
+    ...entries.docs.map((doc) => ({ ...doc, deletedAt: now, updatedAt: now })),
+    { ...series, deletedAt: now, updatedAt: now },
   ]);
   if (wasDefault) {
     const remaining = await listSeries();
     if (remaining.length > 0) {
       // listSeries returns newest-first; pick the first as new default.
-      const now = nowIso();
       await db.put({ ...remaining[0], isDefault: true, updatedAt: now });
     }
   }

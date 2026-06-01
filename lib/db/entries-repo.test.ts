@@ -81,6 +81,15 @@ describe("entries repo", () => {
     expect(await listEntries("series:a")).toHaveLength(0);
   });
 
+  it("soft-deleted entry still appears in listAllEntries", async () => {
+    const created = await createEntry(makeInput());
+    await deleteEntry(created._id);
+    const all = await listAllEntries();
+    expect(all).toHaveLength(1);
+    expect(all[0].deletedAt).toBeTruthy();
+    expect(all[0].updatedAt).toBe(all[0].deletedAt);
+  });
+
   it("omits empty/whitespace-only labels", async () => {
     const created = await createEntry(makeInput({ label: "   " }));
     expect(created.label).toBeUndefined();
@@ -115,7 +124,9 @@ describe("entries repo", () => {
     expect(unlinked.startEntryId).toBeUndefined();
 
     // And the persisted value is gone too, not just unset in-memory.
-    const reread = (await listEntries("series:a")).find((e) => e._id === end._id);
+    const reread = (await listEntries("series:a")).find(
+      (e) => e._id === end._id,
+    );
     expect(reread?.startEntryId).toBeUndefined();
   });
 });

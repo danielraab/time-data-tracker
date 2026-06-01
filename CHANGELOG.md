@@ -6,6 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Deleted entries and series now sync correctly across devices**: deletions were
+  previously invisible to the sync pipeline because PouchDB tombstones (`_deleted: true`)
+  are excluded from `db.find()` queries (used to gather docs to push) and were also
+  filtered out on the server side in `getChangesSince`. Switched to **soft delete**: a
+  `deletedAt` timestamp is written to the doc alongside an updated `updatedAt`, so deleted
+  docs flow through the normal last-write-wins push/pull cycle and are applied on all other
+  devices on the next sync. UI queries (`listEntries`, `listSeries`, `getSeries`, etc.)
+  filter out soft-deleted docs; `listAllEntries` / `listAllSeries` (sync-only) return the
+  full set.
+
 ### Changed
 
 - **Immediate sync on every local write**: creating, editing, or deleting an entry or
