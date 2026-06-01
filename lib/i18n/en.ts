@@ -161,6 +161,27 @@ export const t = {
     overrunBody: (elapsedMinutes: number, maxMinutes: number) =>
       `Open duration is ${elapsedMinutes} min (limit: ${maxMinutes} min).`,
   },
+  trash: {
+    title: "Trash",
+    backToHome: "Back",
+    empty: "Trash is empty.",
+    seriesSection: "Deleted series",
+    entriesSection: "Deleted entries",
+    deletedAgo: (days: number) =>
+      days === 0 ? "Deleted today" : `Deleted ${days} ${days === 1 ? "day" : "days"} ago`,
+    purgeEligible: "Eligible for purge",
+    daysUntilPurge: (days: number) =>
+      `Purge in ${days} ${days === 1 ? "day" : "days"}`,
+    childEntryCount: (n: number) => `${n} ${n === 1 ? "entry" : "entries"}`,
+    parentSeries: "Series",
+    restore: "Restore",
+    purge: "Purge now",
+    confirmPurge: "Permanently delete this item? This cannot be undone.",
+    purgeSuccess: "Item permanently deleted.",
+    restoreSuccess: "Item restored.",
+    notOwner: "Only the owner can purge this item.",
+    trashLink: "Trash",
+  },
   timeline: {
     heading: "Timeline",
     empty: "Add entries to see them on the timeline.",

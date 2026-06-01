@@ -1,4 +1,5 @@
 import { getDb } from "./pouch";
+import { isOwner } from "./trash";
 import type { Series, SeriesInput } from "@/lib/types";
 
 const nowIso = () => new Date().toISOString();
@@ -151,6 +152,38 @@ export async function unarchiveSeries(id: string): Promise<Series> {
   const now = nowIso();
   await db.put({ ...series, isArchived: false, updatedAt: now });
   return (await db.get(id)) as Series;
+}
+
+/** Clears deletedAt on a soft-deleted series, moving it back into active views. */
+export async function restoreSeries(id: string): Promise<Series> {
+  const db = await getDb();
+  const series = (await db.get(id)) as Series;
+  const now = nowIso();
+  const { deletedAt: _removed, ...rest } = series;
+  void _removed;
+  await db.put({ ...rest, updatedAt: now });
+  return (await db.get(id)) as Series;
+}
+
+/**
+ * Permanently hard-deletes a series and all its entries from local PouchDB.
+ * Throws if currentUserId does not own the series.
+ * Server-side removal is handled separately by the purge API.
+ */
+export async function purgeSeries(
+  id: string,
+  currentUserId: string | null,
+): Promise<void> {
+  const db = await getDb();
+  const series = (await db.get(id)) as Series;
+  if (!isOwner(series.ownerId, currentUserId)) {
+    throw new Error("Not authorized to purge this series");
+  }
+  const entries = await db.find({ selector: { type: "entry", seriesId: id } });
+  await Promise.all([
+    ...entries.docs.map((doc) => db.remove(doc._id, doc._rev!)),
+    db.remove(series._id, series._rev!),
+  ]);
 }
 
 /** Deletes a series and all of its entries. Promotes the next series to default

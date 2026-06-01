@@ -150,6 +150,37 @@ export async function putDocs(
   return { accepted: toWrite.length, skipped };
 }
 
+/**
+ * Hard-deletes a list of docs from the user's CouchDB database using _bulk_docs.
+ * Docs that don't exist or are already deleted are skipped.
+ * Returns the number of docs actually deleted.
+ */
+export async function deleteDocsByIds(
+  userId: string,
+  docIds: string[],
+): Promise<number> {
+  if (docIds.length === 0) return 0;
+  const name = userDbName(userId);
+  const existingMap = await fetchExistingRevs(name, docIds);
+  const toDelete = docIds
+    .filter((id) => existingMap.has(id))
+    .map((id) => ({
+      _id: id,
+      _rev: existingMap.get(id)!._rev,
+      _deleted: true,
+    }));
+  if (toDelete.length === 0) return 0;
+  const res = await couchFetch(`/${name}/_bulk_docs`, {
+    method: "POST",
+    body: JSON.stringify({ docs: toDelete }),
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`CouchDB _bulk_docs (delete) failed: ${res.status} ${body}`);
+  }
+  return toDelete.length;
+}
+
 async function fetchExistingRevs(
   name: string,
   ids: string[],
