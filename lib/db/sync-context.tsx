@@ -36,17 +36,29 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevUserIdRef = useRef<string | null>(null);
+  // Guards the changes listener from scheduling an echo sync while a sync run
+  // is in flight (e.g. pulled docs writing to PouchDB would otherwise trigger
+  // a redundant follow-on sync).
+  // NOTE: SyncProvider guard logic is not unit-tested because the project's
+  // Vitest config uses the node environment which does not support React
+  // rendering. See openspec/changes/sync-in-progress-guard/specs/sync-loop-guard/spec.md
+  const syncInProgressRef = useRef(false);
 
   const trigger = useCallback(() => {
     if (!userId) return;
     if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    syncInProgressRef.current = true;
     setState("syncing");
     runSync(userId)
       .then(() => {
+        syncInProgressRef.current = false;
         setState("synced");
         syncTimerRef.current = setTimeout(() => setState("idle"), 3_000);
       })
-      .catch(() => setState("error"));
+      .catch(() => {
+        syncInProgressRef.current = false;
+        setState("error");
+      });
   }, [userId]); // recreated only when the logged-in user changes
 
   // Sync on login (userId transitions null → value)
@@ -76,6 +88,9 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
         .on("change", (change) => {
           // Ignore the checkpoint doc itself to prevent a sync feedback loop
           if (change.id === "sync:checkpoint") return;
+          // Skip while a sync is running — pulled docs writing to PouchDB would
+          // otherwise schedule an echo sync after every pull that returns data.
+          if (syncInProgressRef.current) return;
           if (!userId) return;
           if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
           debounceTimerRef.current = setTimeout(trigger, AUTO_SYNC_DEBOUNCE_MS);
