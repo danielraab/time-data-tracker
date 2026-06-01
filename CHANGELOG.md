@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Immediate sync on every local write**: creating, editing, or deleting an entry or
+  series now triggers a sync immediately (rather than waiting for the 2-second debounce)
+  when the user is signed in. Affected components: `AddEntryDialog`, `QuickAdd`,
+  `SeriesCard`, `SeriesForm`, `SeriesHeader`, `OpenStartItem`, `PointItem`,
+  `PairedSpanItem`, `OrphanEndItem`. The existing debounce remains as a fallback for any
+  other writes. No-op when the user is not signed in.
+
 ## [1.4.0] - 2026-05-29
 
 ### Added

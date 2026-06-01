@@ -25,6 +25,7 @@ import {
   fromDateTimeLocal,
   toDateTimeLocal,
 } from "@/lib/format";
+import { useSyncContext } from "@/lib/db/sync-context";
 import { t } from "@/lib/i18n/en";
 import type { Entry } from "@/lib/types";
 
@@ -47,6 +48,7 @@ export function PairedSpanItem({
   const [endLocal, setEndLocal] = useState(toDateTimeLocal(end.timestamp));
   const [label, setLabel] = useState(start.label ?? "");
   const [busy, setBusy] = useState(false);
+  const { trigger: syncNow } = useSyncContext();
 
   function resetEdit() {
     setStartLocal(toDateTimeLocal(start.timestamp));
@@ -66,6 +68,7 @@ export function PairedSpanItem({
       await updateEntry(end._id, {
         timestamp: fromDateTimeLocal(endLocal),
       });
+      syncNow();
       setEditing(false);
     } finally {
       setBusy(false);
@@ -82,6 +85,7 @@ export function PairedSpanItem({
     setBusy(true);
     try {
       await updateEntry(end._id, { startEntryId: undefined });
+      syncNow();
       setEditing(false);
     } finally {
       setBusy(false);
@@ -91,6 +95,7 @@ export function PairedSpanItem({
   async function handleDelete() {
     if (!window.confirm(t.common.confirmDelete)) return;
     await Promise.all([deleteEntry(start._id), deleteEntry(end._id)]);
+    syncNow();
   }
 
   const gps = start.gps ?? end.gps;

@@ -33,6 +33,7 @@ import {
 } from "@/lib/format";
 import { useNow } from "@/lib/use-now";
 import { orphanEndsAfter } from "@/lib/spans";
+import { useSyncContext } from "@/lib/db/sync-context";
 import { t } from "@/lib/i18n/en";
 import type { Entry } from "@/lib/types";
 
@@ -56,6 +57,7 @@ export function OpenStartItem({
   const [label, setLabel] = useState(entry.label ?? "");
   const [linkedEndId, setLinkedEndId] = useState(NO_LINK);
   const [busy, setBusy] = useState(false);
+  const { trigger: syncNow } = useSyncContext();
 
   // Candidate ends must come AFTER the (in-progress) start timestamp.
   const candidateEnds = useMemo(() => {
@@ -77,6 +79,7 @@ export function OpenStartItem({
       if (linkedEndId !== NO_LINK) {
         await updateEntry(linkedEndId, { startEntryId: entry._id });
       }
+      syncNow();
       setEditing(false);
       setLinkedEndId(NO_LINK);
     } finally {
@@ -94,6 +97,7 @@ export function OpenStartItem({
   async function handleDelete() {
     if (!window.confirm(t.common.confirmDelete)) return;
     await deleteEntry(entry._id);
+    syncNow();
   }
 
   async function handleCloseNow() {
@@ -107,6 +111,7 @@ export function OpenStartItem({
         startEntryId: entry._id,
         label: entry.label,
       });
+      syncNow();
     } finally {
       setBusy(false);
     }

@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { QuickLabelModal } from "@/components/entries/quick-label-modal";
 import { createEntry } from "@/lib/db/entries-repo";
+import { useSyncContext } from "@/lib/db/sync-context";
 import { t } from "@/lib/i18n/en";
 import type { Series } from "@/lib/types";
 import { consumeLongPress, useLongPress } from "@/lib/use-long-press";
@@ -38,6 +39,7 @@ export function SeriesCard({
   const [modalType, setModalType] = useState<"point_label" | "span_start">(
     "point_label",
   );
+  const { trigger: syncNow } = useSyncContext();
 
   const pointLongPress = useLongPress(() => {
     setModalType("point_label");
@@ -58,6 +60,7 @@ export function SeriesCard({
       entryType: "point_label",
       timestamp: new Date().toISOString(),
     });
+    syncNow();
     toast.success(t.dashboard.quickAddPointAdded);
   }
 
@@ -70,6 +73,7 @@ export function SeriesCard({
       entryType: "span_start",
       timestamp: new Date().toISOString(),
     });
+    syncNow();
     toast.success(t.dashboard.quickAddDurationStarted);
   }
 
@@ -83,6 +87,7 @@ export function SeriesCard({
       timestamp: new Date().toISOString(),
       startEntryId: openStartId,
     });
+    syncNow();
     toast.success(t.dashboard.quickAddDurationEnded);
   }
 

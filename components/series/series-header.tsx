@@ -15,6 +15,7 @@ import {
   unarchiveSeries,
   updateSeries,
 } from "@/lib/db/series-repo";
+import { useSyncContext } from "@/lib/db/sync-context";
 import { t } from "@/lib/i18n/en";
 import type { Series } from "@/lib/types";
 import { TagInput } from "./tag-input";
@@ -26,12 +27,14 @@ export function SeriesHeader({ series }: { series: Series }) {
   const [description, setDescription] = useState(series.description);
   const [tags, setTags] = useState<string[]>(series.tags);
   const [saving, setSaving] = useState(false);
+  const { trigger: syncNow } = useSyncContext();
 
   async function handleSave() {
     if (saving) return;
     setSaving(true);
     try {
       await updateSeries(series._id, { title, description, tags });
+      syncNow();
       setEditing(false);
     } finally {
       setSaving(false);
@@ -48,16 +51,19 @@ export function SeriesHeader({ series }: { series: Series }) {
   async function handleDelete() {
     if (!window.confirm(t.common.confirmDelete)) return;
     await deleteSeries(series._id);
+    syncNow();
     router.push("/");
   }
 
   async function handleArchive() {
     if (!window.confirm(t.series.confirmArchive)) return;
     await archiveSeries(series._id);
+    syncNow();
   }
 
   async function handleUnarchive() {
     await unarchiveSeries(series._id);
+    syncNow();
   }
 
   if (editing) {
@@ -167,7 +173,9 @@ export function SeriesHeader({ series }: { series: Series }) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setDefaultSeries(series._id)}
+              onClick={() => {
+                void setDefaultSeries(series._id).then(syncNow);
+              }}
               title={t.series.setDefault}
             >
               <Star className="size-4" />

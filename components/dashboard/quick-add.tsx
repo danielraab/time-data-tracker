@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { QuickLabelModal } from "@/components/entries/quick-label-modal";
 import { createEntry } from "@/lib/db/entries-repo";
 import { useDefaultSeries, useEntries } from "@/lib/db/hooks";
+import { useSyncContext } from "@/lib/db/sync-context";
 import { t } from "@/lib/i18n/en";
 import { openStarts } from "@/lib/spans";
 import { consumeLongPress, useLongPress } from "@/lib/use-long-press";
@@ -20,6 +21,7 @@ export function QuickAdd() {
   const [modalType, setModalType] = useState<"point_label" | "span_start">(
     "point_label",
   );
+  const { trigger: syncNow } = useSyncContext();
 
   const pointLongPress = useLongPress(() => {
     setModalType("point_label");
@@ -51,6 +53,7 @@ export function QuickAdd() {
       entryType: "point_label",
       timestamp: new Date().toISOString(),
     });
+    syncNow();
     toast.success(t.dashboard.quickAddPointAdded);
   }
 
@@ -62,6 +65,7 @@ export function QuickAdd() {
       entryType: "span_start",
       timestamp: new Date().toISOString(),
     });
+    syncNow();
     toast.success(t.dashboard.quickAddDurationStarted);
   }
 
@@ -73,6 +77,7 @@ export function QuickAdd() {
       timestamp: new Date().toISOString(),
       startEntryId: openStart._id,
     });
+    syncNow();
     toast.success(t.dashboard.quickAddDurationEnded);
   }
 

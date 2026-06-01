@@ -29,6 +29,7 @@ import {
   toDateTimeLocal,
 } from "@/lib/format";
 import { openStartsBefore } from "@/lib/spans";
+import { useSyncContext } from "@/lib/db/sync-context";
 import { t } from "@/lib/i18n/en";
 import type { Entry } from "@/lib/types";
 
@@ -51,6 +52,7 @@ export function OrphanEndItem({
   const [label, setLabel] = useState(entry.label ?? "");
   const [linkedStartId, setLinkedStartId] = useState(NO_LINK);
   const [busy, setBusy] = useState(false);
+  const { trigger: syncNow } = useSyncContext();
 
   // Candidate starts must come BEFORE the (in-progress) end timestamp.
   const candidateStarts = useMemo(() => {
@@ -70,6 +72,7 @@ export function OrphanEndItem({
         label: label.trim() || undefined,
         startEntryId: linkedStartId === NO_LINK ? undefined : linkedStartId,
       });
+      syncNow();
       setEditing(false);
       setLinkedStartId(NO_LINK);
     } finally {
@@ -87,6 +90,7 @@ export function OrphanEndItem({
   async function handleDelete() {
     if (!window.confirm(t.common.confirmDelete)) return;
     await deleteEntry(entry._id);
+    syncNow();
   }
 
   return (

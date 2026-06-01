@@ -19,6 +19,7 @@ import {
   fromDateTimeLocal,
   toDateTimeLocal,
 } from "@/lib/format";
+import { useSyncContext } from "@/lib/db/sync-context";
 import { t } from "@/lib/i18n/en";
 import type { Entry } from "@/lib/types";
 
@@ -38,6 +39,7 @@ export function PointItem({
     entry.value !== undefined ? String(entry.value) : "",
   );
   const [busy, setBusy] = useState(false);
+  const { trigger: syncNow } = useSyncContext();
 
   async function handleSave() {
     if (busy) return;
@@ -52,6 +54,7 @@ export function PointItem({
         if (Number.isFinite(n)) patch.value = n;
       }
       await updateEntry(entry._id, patch);
+      syncNow();
       setEditing(false);
     } finally {
       setBusy(false);
@@ -68,6 +71,7 @@ export function PointItem({
   async function handleDelete() {
     if (!window.confirm(t.common.confirmDelete)) return;
     await deleteEntry(entry._id);
+    syncNow();
   }
 
   return (

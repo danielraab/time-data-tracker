@@ -23,6 +23,7 @@ import { useEntries, useSeriesList } from "@/lib/db/hooks";
 import { fromDateTimeLocal, toDateTimeLocal } from "@/lib/format";
 import { t } from "@/lib/i18n/en";
 import type { Entry, EntryType, Gps, Series } from "@/lib/types";
+import { useSyncContext } from "@/lib/db/sync-context";
 import { TypeSwitch } from "./add-entry-form/type-switch";
 import { PointPart } from "./add-entry-form/point-part";
 import { DurationSinglePart } from "./add-entry-form/duration-single-part";
@@ -106,6 +107,7 @@ function AddEntryForm({
   const [gps, setGps] = useState<Gps | undefined>();
   const [linkedStartId, setLinkedStartId] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const { trigger: syncNow } = useSyncContext();
 
   const isPoint = entryType === "point_label" || entryType === "point_number";
   /** Full duration mode: a linked start+end pair is created in one shot. */
@@ -131,6 +133,7 @@ function AddEntryForm({
           label: label || undefined,
           startEntryId: startEntry._id,
         });
+        syncNow();
         onClose();
       } finally {
         setSaving(false);
@@ -154,6 +157,7 @@ function AddEntryForm({
         startEntryId:
           entryType === "span_end" && linkedStartId ? linkedStartId : undefined,
       });
+      syncNow();
       onClose();
     } finally {
       setSaving(false);
