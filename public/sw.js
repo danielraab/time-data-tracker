@@ -70,3 +70,35 @@ self.addEventListener("fetch", (event) => {
     }),
   );
 });
+
+self.addEventListener("periodicsync", (event) => {
+  if (event.tag !== "tidatra-sync") return;
+  event.waitUntil(
+    (async () => {
+      // Trigger PouchDB↔CouchDB sync via the existing sync endpoint.
+      try {
+        await fetch("/api/sync");
+      } catch {
+        // Network or server error — silently skip.
+      }
+
+      // Check for overrun open durations and show notifications.
+      try {
+        const res = await fetch("/api/notify-overrun");
+        if (!res.ok) return; // 401, 503, etc. — silently skip.
+        const overruns = await res.json();
+        for (const item of overruns) {
+          await self.registration.showNotification(
+            `${item.seriesTitle} — duration overrun`,
+            {
+              body: `Open duration is ${item.elapsedMinutes} min.`,
+              tag: `overrun:${item.seriesId}:${item.startEntryId}`,
+            },
+          );
+        }
+      } catch {
+        // Network or server error — silently skip.
+      }
+    })(),
+  );
+});

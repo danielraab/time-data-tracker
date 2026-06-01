@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   hasOpenSpan,
   isOpenSpanEntry,
+  isOverrun,
   openStarts,
   openStartsBefore,
   orphanEnds,
   orphanEndsAfter,
   pairSpans,
+  spanDurationMinutes,
   sumDurationsForDay,
 } from "./spans";
 import type { Entry } from "./types";
@@ -249,5 +251,97 @@ describe("sumDurationsForDay", () => {
     });
     const ms = sumDurationsForDay([s1, e1, s2, e2], DAY_START, DAY_END, NOW);
     expect(ms).toBe(90 * 60 * 1000);
+  });
+});
+
+describe("spanDurationMinutes", () => {
+  const BASE = new Date("2026-01-01T10:00:00.000Z").getTime();
+
+  it("returns 0 for a zero-length closed span", () => {
+    const start = entry({
+      _id: "s",
+      entryType: "span_start",
+      timestamp: "2026-01-01T10:00:00.000Z",
+    });
+    const end = entry({
+      _id: "e",
+      entryType: "span_end",
+      timestamp: "2026-01-01T10:00:00.000Z",
+    });
+    expect(spanDurationMinutes(start, end, BASE)).toBe(0);
+  });
+
+  it("returns elapsed minutes for a closed span", () => {
+    const start = entry({
+      _id: "s",
+      entryType: "span_start",
+      timestamp: "2026-01-01T10:00:00.000Z",
+    });
+    const end = entry({
+      _id: "e",
+      entryType: "span_end",
+      timestamp: "2026-01-01T11:30:00.000Z",
+    });
+    expect(spanDurationMinutes(start, end, BASE)).toBe(90);
+  });
+
+  it("uses nowMs as end for open spans", () => {
+    const start = entry({
+      _id: "s",
+      entryType: "span_start",
+      timestamp: "2026-01-01T10:00:00.000Z",
+    });
+    const nowMs = new Date("2026-01-01T11:00:00.000Z").getTime();
+    expect(spanDurationMinutes(start, null, nowMs)).toBe(60);
+  });
+});
+
+describe("isOverrun", () => {
+  it("returns false when elapsed is equal to maxMinutes", () => {
+    const start = entry({
+      _id: "s",
+      entryType: "span_start",
+      timestamp: "2026-01-01T10:00:00.000Z",
+    });
+    const end = entry({
+      _id: "e",
+      entryType: "span_end",
+      timestamp: "2026-01-01T11:00:00.000Z",
+    });
+    expect(isOverrun(start, end, 60, 0)).toBe(false);
+  });
+
+  it("returns true when elapsed exceeds maxMinutes", () => {
+    const start = entry({
+      _id: "s",
+      entryType: "span_start",
+      timestamp: "2026-01-01T10:00:00.000Z",
+    });
+    const end = entry({
+      _id: "e",
+      entryType: "span_end",
+      timestamp: "2026-01-01T11:01:00.000Z",
+    });
+    expect(isOverrun(start, end, 60, 0)).toBe(true);
+  });
+
+  it("returns false for an open span below the limit", () => {
+    const start = entry({
+      _id: "s",
+      entryType: "span_start",
+      timestamp: "2026-01-01T10:00:00.000Z",
+    });
+    const nowMs = new Date("2026-01-01T10:30:00.000Z").getTime();
+    expect(isOverrun(start, null, 60, nowMs)).toBe(false);
+  });
+
+  it("returns true for an open span exceeding the limit", () => {
+    const start = entry({
+      _id: "s",
+      entryType: "span_start",
+      timestamp: "2026-01-01T10:00:00.000Z",
+    });
+    const nowMs = new Date("2026-01-01T11:30:00.000Z").getTime();
+    expect(isOverrun(start, null, 60, nowMs)).toBe(true);
   });
 });

@@ -10,6 +10,7 @@ import { PointItem } from "./point-item";
 
 interface EntryListProps {
   entries: Entry[];
+  maxDurationMinutes?: number;
   readOnly?: boolean;
 }
 
@@ -37,7 +38,11 @@ function resolveSpans(entries: Entry[]): ResolvedSpans {
   return { endByStartId, pairedEndIds };
 }
 
-export function EntryList({ entries, readOnly = false }: EntryListProps) {
+export function EntryList({
+  entries,
+  maxDurationMinutes,
+  readOnly = false,
+}: EntryListProps) {
   const { endByStartId, pairedEndIds } = useMemo(
     () => resolveSpans(entries),
     [entries],
@@ -84,6 +89,7 @@ export function EntryList({ entries, readOnly = false }: EntryListProps) {
                 key={entry._id}
                 start={entry}
                 end={end}
+                maxDurationMinutes={maxDurationMinutes}
                 readOnly={readOnly}
               />
             );
@@ -93,6 +99,7 @@ export function EntryList({ entries, readOnly = false }: EntryListProps) {
               key={entry._id}
               entry={entry}
               allEntries={entries}
+              maxDurationMinutes={maxDurationMinutes}
               readOnly={readOnly}
             />
           );

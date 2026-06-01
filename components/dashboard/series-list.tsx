@@ -12,15 +12,17 @@ import {
   useArchivedSeriesList,
   useSeriesList,
 } from "@/lib/db/hooks";
-import { hasOpenSpan, openStarts } from "@/lib/spans";
+import { hasOpenSpan, isOverrun, openStarts } from "@/lib/spans";
 import { t } from "@/lib/i18n/en";
 import type { Entry } from "@/lib/types";
+import { useNow } from "@/lib/use-now";
 import { SeriesCard } from "./series-card";
 
 export function SeriesList() {
   const { series, loading } = useSeriesList();
   const { series: archivedSeries } = useArchivedSeriesList();
   const { entries } = useAllEntries();
+  const now = useNow(30_000);
   const [query, setQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [addEntryOpen, setAddEntryOpen] = useState(false);
@@ -53,18 +55,26 @@ export function SeriesList() {
       .filter((s) => matchQuery(s.title) && matchTags(s.tags))
       .map((s) => {
         const seriesEntries = entriesBySeries.get(s._id) ?? [];
+        const starts = openStarts(seriesEntries);
+        const hasOverrunOpenSpan =
+          s.maxDurationMinutes != null &&
+          now != null &&
+          starts.some((start) =>
+            isOverrun(start, null, s.maxDurationMinutes!, now),
+          );
         return {
           series: s,
           entryCount: seriesEntries.length,
           hasOpenSpan: hasOpenSpan(seriesEntries),
-          openStartId: openStarts(seriesEntries)[0]?._id ?? null,
+          openStartId: starts[0]?._id ?? null,
+          hasOverrunOpenSpan,
         };
       })
       .sort((a, b) => {
         if (a.hasOpenSpan !== b.hasOpenSpan) return a.hasOpenSpan ? -1 : 1;
         return b.series.updatedAt.localeCompare(a.series.updatedAt);
       });
-  }, [series, entriesBySeries, query, selectedTags]);
+  }, [series, entriesBySeries, query, selectedTags, now]);
 
   function toggleTag(tag: string) {
     setSelectedTags((prev) =>
@@ -156,15 +166,24 @@ export function SeriesList() {
         </p>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
-          {filtered.map(({ series, entryCount, hasOpenSpan, openStartId }) => (
-            <SeriesCard
-              key={series._id}
-              series={series}
-              entryCount={entryCount}
-              hasOpenSpan={hasOpenSpan}
-              openStartId={openStartId}
-            />
-          ))}
+          {filtered.map(
+            ({
+              series,
+              entryCount,
+              hasOpenSpan,
+              openStartId,
+              hasOverrunOpenSpan,
+            }) => (
+              <SeriesCard
+                key={series._id}
+                series={series}
+                entryCount={entryCount}
+                hasOpenSpan={hasOpenSpan}
+                openStartId={openStartId}
+                hasOverrunOpenSpan={hasOverrunOpenSpan}
+              />
+            ),
+          )}
         </div>
       )}
 

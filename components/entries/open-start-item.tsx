@@ -32,7 +32,8 @@ import {
   toDateTimeLocal,
 } from "@/lib/format";
 import { useNow } from "@/lib/use-now";
-import { orphanEndsAfter } from "@/lib/spans";
+import { orphanEndsAfter, isOverrun } from "@/lib/spans";
+import { clearOverrunFlag } from "@/lib/overrun-notifier";
 import { useSyncContext } from "@/lib/db/sync-context";
 import { t } from "@/lib/i18n/en";
 import type { Entry } from "@/lib/types";
@@ -42,12 +43,14 @@ const NO_LINK = "__none__";
 interface OpenStartItemProps {
   entry: Entry;
   allEntries: Entry[];
+  maxDurationMinutes?: number;
   readOnly?: boolean;
 }
 
 export function OpenStartItem({
   entry,
   allEntries,
+  maxDurationMinutes,
   readOnly = false,
 }: OpenStartItemProps) {
   const now = useNow(10_000);
@@ -78,6 +81,7 @@ export function OpenStartItem({
       });
       if (linkedEndId !== NO_LINK) {
         await updateEntry(linkedEndId, { startEntryId: entry._id });
+        clearOverrunFlag(entry.seriesId, entry._id);
       }
       syncNow();
       setEditing(false);
@@ -111,6 +115,7 @@ export function OpenStartItem({
         startEntryId: entry._id,
         label: entry.label,
       });
+      clearOverrunFlag(entry.seriesId, entry._id);
       syncNow();
     } finally {
       setBusy(false);
@@ -144,6 +149,11 @@ export function OpenStartItem({
                 )}
               </Badge>
             )}
+            {now != null &&
+              maxDurationMinutes != null &&
+              isOverrun(entry, null, maxDurationMinutes, now) && (
+                <span className="inline-block size-2 rounded-full bg-red-500 animate-pulse" />
+              )}
             {entry.gps && (
               <>
                 <button

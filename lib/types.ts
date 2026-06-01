@@ -31,6 +31,8 @@ export interface Series extends BaseDoc {
   isDefault?: boolean;
   /** Archived series are read-only and hidden from the main overview. */
   isArchived?: boolean;
+  /** Optional max duration in minutes; when set, durations exceeding this are flagged. */
+  maxDurationMinutes?: number;
 }
 
 /** A single timestamped record inside a series. */
@@ -49,7 +51,8 @@ export interface Entry extends BaseDoc {
 
 export type TidatraDoc = Series | Entry;
 
-export type SeriesInput = Pick<Series, "title" | "description" | "tags">;
+export type SeriesInput = Pick<Series, "title" | "description" | "tags"> &
+  Partial<Pick<Series, "maxDurationMinutes">>;
 
 export type EntryInput = Pick<Entry, "seriesId" | "entryType" | "timestamp"> &
   Partial<Pick<Entry, "label" | "value" | "gps" | "startEntryId">>;

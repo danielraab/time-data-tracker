@@ -26,14 +26,33 @@ export function SeriesHeader({ series }: { series: Series }) {
   const [title, setTitle] = useState(series.title);
   const [description, setDescription] = useState(series.description);
   const [tags, setTags] = useState<string[]>(series.tags);
+  const [maxDurationRaw, setMaxDurationRaw] = useState(
+    series.maxDurationMinutes != null ? String(series.maxDurationMinutes) : "",
+  );
   const [saving, setSaving] = useState(false);
   const { trigger: syncNow } = useSyncContext();
 
+  /** Returns the parsed positive integer, null if empty, or undefined if invalid. */
+  function parseMaxDuration(): number | null | undefined {
+    if (maxDurationRaw.trim() === "") return null;
+    const n = Number(maxDurationRaw);
+    if (!Number.isInteger(n) || n <= 0) return undefined;
+    return n;
+  }
+
+  const maxDurationValue = parseMaxDuration();
+  const maxDurationInvalid = maxDurationValue === undefined;
+
   async function handleSave() {
-    if (saving) return;
+    if (saving || maxDurationInvalid) return;
     setSaving(true);
     try {
-      await updateSeries(series._id, { title, description, tags });
+      await updateSeries(series._id, {
+        title,
+        description,
+        tags,
+        maxDurationMinutes: maxDurationValue ?? undefined,
+      });
       syncNow();
       setEditing(false);
     } finally {
@@ -45,6 +64,11 @@ export function SeriesHeader({ series }: { series: Series }) {
     setTitle(series.title);
     setDescription(series.description);
     setTags(series.tags);
+    setMaxDurationRaw(
+      series.maxDurationMinutes != null
+        ? String(series.maxDurationMinutes)
+        : "",
+    );
     setEditing(false);
   }
 
@@ -95,8 +119,31 @@ export function SeriesHeader({ series }: { series: Series }) {
             placeholder={t.series.tagsPlaceholder}
           />
         </div>
+        <div className="space-y-2">
+          <Label htmlFor="edit-max-duration">{t.series.maxDurationLabel}</Label>
+          <Input
+            id="edit-max-duration"
+            type="number"
+            min={1}
+            step={1}
+            value={maxDurationRaw}
+            onChange={(e) => setMaxDurationRaw(e.target.value)}
+            placeholder={t.series.maxDurationPlaceholder}
+          />
+          <p className="text-xs text-muted-foreground">
+            {t.series.maxDurationHint}
+          </p>
+          {maxDurationInvalid && (
+            <p className="text-xs text-destructive">
+              Enter a positive whole number or leave blank.
+            </p>
+          )}
+        </div>
         <div className="flex gap-2">
-          <Button onClick={handleSave} disabled={!title.trim() || saving}>
+          <Button
+            onClick={handleSave}
+            disabled={!title.trim() || saving || maxDurationInvalid}
+          >
             {t.common.save}
           </Button>
           <Button variant="ghost" onClick={handleCancel}>

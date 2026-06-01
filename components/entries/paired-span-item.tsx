@@ -25,6 +25,7 @@ import {
   fromDateTimeLocal,
   toDateTimeLocal,
 } from "@/lib/format";
+import { isOverrun } from "@/lib/spans";
 import { useSyncContext } from "@/lib/db/sync-context";
 import { t } from "@/lib/i18n/en";
 import type { Entry } from "@/lib/types";
@@ -32,12 +33,14 @@ import type { Entry } from "@/lib/types";
 interface PairedSpanItemProps {
   start: Entry;
   end: Entry;
+  maxDurationMinutes?: number;
   readOnly?: boolean;
 }
 
 export function PairedSpanItem({
   start,
   end,
+  maxDurationMinutes,
   readOnly = false,
 }: PairedSpanItemProps) {
   const [editing, setEditing] = useState(false);
@@ -121,7 +124,15 @@ export function PairedSpanItem({
               <ArrowRight className="size-3" />
               {formatDateTime(end.timestamp)}
             </span>
-            <Badge variant="outline" className="font-normal">
+            <Badge
+              variant="outline"
+              className={`font-normal ${
+                maxDurationMinutes != null &&
+                isOverrun(start, end, maxDurationMinutes, 0)
+                  ? "text-red-600 dark:text-red-400"
+                  : ""
+              }`}
+            >
               {formatDurationBetween(start.timestamp, end.timestamp)}
             </Badge>
             {isReversed && (

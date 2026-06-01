@@ -6,6 +6,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-06-01
+
+### Added
+
+- **Max duration per series**: each series can now have an optional _Max duration (min)_
+  field. When set, any open or closed span that exceeds this limit is visually flagged:
+  closed spans show their duration badge in red on the entry list; open spans show a pulsing
+  red dot on both the entry list and the dashboard series card.
+- **Foreground overrun notifications**: while the series detail page is open, a 60-second
+  interval checks every open span against `maxDurationMinutes`. If the limit is exceeded and
+  the browser has notification permission, a `Notification` is shown. localStorage
+  deduplication prevents repeated alerts for the same span. Clearing a span (closing it)
+  automatically removes the deduplication flag.
+- **Background overrun notifications via Periodic Background Sync**: when the app is closed
+  or in the background, the service worker's `periodicsync` handler now calls the new
+  `/api/notify-overrun` endpoint. The endpoint returns all overrun open spans for the signed-in
+  user; the service worker shows a notification for each, tagged to deduplicate per span.
+- **Dashboard overrun indicator**: the "Open duration" badge on each series card gains a
+  small pulsing red dot when any open span in that series is overrunning. The indicator
+  refreshes every 30 seconds.
+
+### Changed
+
+- **Series form and header** now include the max-duration field, with inline validation
+  (must be a positive integer when provided).
+- **`/api/notify-overrun` endpoint**: new GET route that requires authentication and returns
+  `OverrunItem[]` — `{ seriesId, seriesTitle, startEntryId, elapsedMinutes }` — for all
+  overrun open spans belonging to the signed-in user.
+- **Service worker** (`public/sw.js`) handles the `periodicsync` event tagged
+  `tidatra-sync`: triggers `/api/sync` followed by `/api/notify-overrun` and dispatches
+  system notifications.
+- **PWA manifest** (`app/manifest.ts`) adds `permissions_policy:
+"periodic-background-sync=(self)"`.
+
 ### Added
 
 - **Quick-add series picker**: the series label in the Quick Add card is now an
