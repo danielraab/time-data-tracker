@@ -77,6 +77,10 @@ export const t = {
     archived: "Archived",
     confirmArchive:
       "Archive this series? It will be hidden from the overview and become read-only.",
+    maxDurationLabel: "Max duration (min)",
+    maxDurationPlaceholder: "e.g. 60",
+    maxDurationHint:
+      "Alert when an open duration exceeds this many minutes (optional)",
   },
   entries: {
     heading: "Entries",
@@ -151,6 +155,11 @@ export const t = {
     syncError: "Sync failed — click to retry",
     label: "Sync",
     signInToSync: "Sign in to sync across devices",
+  },
+  notifications: {
+    overrunTitle: (seriesTitle: string) => `${seriesTitle} — duration overrun`,
+    overrunBody: (elapsedMinutes: number, maxMinutes: number) =>
+      `Open duration is ${elapsedMinutes} min (limit: ${maxMinutes} min).`,
   },
   timeline: {
     heading: "Timeline",

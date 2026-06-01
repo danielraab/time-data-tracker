@@ -24,17 +24,36 @@ export function SeriesForm({ onSuccess }: SeriesFormProps = {}) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [tags, setTags] = useState<string[]>([]);
+  const [maxDurationRaw, setMaxDurationRaw] = useState("");
   const [saving, setSaving] = useState(false);
   const { trigger: syncNow } = useSyncContext();
+
+  /** Returns the parsed positive integer, null if empty, or undefined if invalid. */
+  function parseMaxDuration(): number | null | undefined {
+    if (maxDurationRaw.trim() === "") return null;
+    const n = Number(maxDurationRaw);
+    if (!Number.isInteger(n) || n <= 0) return undefined;
+    return n;
+  }
+
+  const maxDurationValue = parseMaxDuration();
+  const maxDurationInvalid = maxDurationValue === undefined;
 
   return (
     <form
       onSubmit={async (event) => {
         event.preventDefault();
-        if (!title.trim() || saving) return;
+        if (!title.trim() || saving || maxDurationInvalid) return;
         setSaving(true);
         try {
-          const series = await createSeries({ title, description, tags });
+          const series = await createSeries({
+            title,
+            description,
+            tags,
+            ...(maxDurationValue != null && {
+              maxDurationMinutes: maxDurationValue,
+            }),
+          });
           syncNow();
           if (onSuccess) {
             onSuccess(series);
@@ -80,8 +99,36 @@ export function SeriesForm({ onSuccess }: SeriesFormProps = {}) {
         />
       </div>
 
+      <div className="space-y-2">
+        <Label htmlFor="series-max-duration">{t.series.maxDurationLabel}</Label>
+        <Input
+          id="series-max-duration"
+          type="number"
+          min={1}
+          step={1}
+          value={maxDurationRaw}
+          onChange={(e) => setMaxDurationRaw(e.target.value)}
+          placeholder={t.series.maxDurationPlaceholder}
+          aria-describedby="series-max-duration-hint"
+        />
+        <p
+          id="series-max-duration-hint"
+          className="text-xs text-muted-foreground"
+        >
+          {t.series.maxDurationHint}
+        </p>
+        {maxDurationInvalid && (
+          <p className="text-xs text-destructive">
+            Enter a positive whole number or leave blank.
+          </p>
+        )}
+      </div>
+
       <div className="flex gap-2">
-        <Button type="submit" disabled={!title.trim() || saving}>
+        <Button
+          type="submit"
+          disabled={!title.trim() || saving || maxDurationInvalid}
+        >
           {t.series.create}
         </Button>
         <Button type="button" variant="ghost" onClick={() => router.back()}>

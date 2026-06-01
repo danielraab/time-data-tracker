@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Map, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AddEntryDialog } from "@/components/entries/add-entry-dialog";
@@ -11,6 +11,7 @@ import { Timeline } from "@/components/timeline/timeline";
 import { useEntries, useSeries } from "@/lib/db/hooks";
 import { formatDateTime, formatDurationDetailed } from "@/lib/format";
 import { t } from "@/lib/i18n/en";
+import { checkOverruns } from "@/lib/overrun-notifier";
 import { sumDurationsForDay } from "@/lib/spans";
 import { useNow } from "@/lib/use-now";
 import type { EntryType } from "@/lib/types";
@@ -30,6 +31,15 @@ export function SeriesDetail({ id }: { id: string }) {
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
 
   const handleDayChange = useCallback((day: Date) => setSelectedDay(day), []);
+
+  // Foreground overrun check — runs every 60 s while the series page is open.
+  useEffect(() => {
+    if (!series || series.maxDurationMinutes == null) return;
+    const id = setInterval(() => {
+      checkOverruns(series, entries, Date.now());
+    }, 60_000);
+    return () => clearInterval(id);
+  }, [series, entries]);
 
   const totalDurationMs = useMemo(() => {
     if (!selectedDay || now === null) return 0;
@@ -137,7 +147,11 @@ export function SeriesDetail({ id }: { id: string }) {
             )}
           </div>
         </div>
-        <EntryList entries={entries} readOnly={!!series.isArchived} />
+        <EntryList
+          entries={entries}
+          maxDurationMinutes={series.maxDurationMinutes}
+          readOnly={!!series.isArchived}
+        />
       </section>
 
       <AddEntryDialog

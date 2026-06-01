@@ -26,6 +26,7 @@ interface SeriesCardProps {
   series: Series;
   entryCount: number;
   hasOpenSpan: boolean;
+  hasOverrunOpenSpan?: boolean;
   openStartId?: string | null;
 }
 
@@ -33,6 +34,7 @@ export function SeriesCard({
   series,
   entryCount,
   hasOpenSpan,
+  hasOverrunOpenSpan = false,
   openStartId,
 }: SeriesCardProps) {
   const [modalOpen, setModalOpen] = useState(false);
@@ -123,6 +125,9 @@ export function SeriesCard({
                 >
                   <AlertCircle className="size-3" />
                   {t.dashboard.openSpan}
+                  {hasOverrunOpenSpan && (
+                    <span className="ml-1 inline-block size-1.5 rounded-full bg-red-500 animate-pulse" />
+                  )}
                 </Badge>
               )}
             </div>

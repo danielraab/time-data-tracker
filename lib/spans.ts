@@ -96,3 +96,33 @@ export function sumDurationsForDay(
   }
   return total;
 }
+
+/**
+ * Returns elapsed minutes for a span.
+ * Open spans (end === null) use `nowMs` as the end time.
+ *
+ * Pure helper — exported for unit tests.
+ */
+export function spanDurationMinutes(
+  start: Entry,
+  end: Entry | null,
+  nowMs: number,
+): number {
+  const startMs = new Date(start.timestamp).getTime();
+  const endMs = end ? new Date(end.timestamp).getTime() : nowMs;
+  return (endMs - startMs) / 60_000;
+}
+
+/**
+ * Returns true when the span's elapsed time exceeds `maxMinutes`.
+ *
+ * Pure helper — exported for unit tests.
+ */
+export function isOverrun(
+  start: Entry,
+  end: Entry | null,
+  maxMinutes: number,
+  nowMs: number,
+): boolean {
+  return spanDurationMinutes(start, end, nowMs) > maxMinutes;
+}

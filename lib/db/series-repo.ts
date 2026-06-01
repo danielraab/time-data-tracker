@@ -84,6 +84,9 @@ export async function createSeries(input: SeriesInput): Promise<Series> {
     isDefault,
     createdAt: ts,
     updatedAt: ts,
+    ...(input.maxDurationMinutes != null && {
+      maxDurationMinutes: input.maxDurationMinutes,
+    }),
   };
   const res = await db.put(doc);
   return { ...doc, _rev: res.rev };
@@ -95,7 +98,8 @@ export async function updateSeries(
 ): Promise<Series> {
   const db = await getDb();
   const current = (await db.get(id)) as Series;
-  const updated: Series = {
+  // Build the update, handling maxDurationMinutes deletion explicitly.
+  const base: Series = {
     ...current,
     ...(patch.title !== undefined && { title: patch.title.trim() }),
     ...(patch.description !== undefined && {
@@ -104,6 +108,14 @@ export async function updateSeries(
     ...(patch.tags !== undefined && { tags: normalizeTags(patch.tags) }),
     updatedAt: nowIso(),
   };
+  if ("maxDurationMinutes" in patch) {
+    if (patch.maxDurationMinutes == null) {
+      delete base.maxDurationMinutes;
+    } else {
+      base.maxDurationMinutes = patch.maxDurationMinutes;
+    }
+  }
+  const updated: Series = base;
   const res = await db.put(updated);
   return { ...updated, _rev: res.rev };
 }
