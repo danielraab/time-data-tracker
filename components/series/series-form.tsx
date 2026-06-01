@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createSeries } from "@/lib/db/series-repo";
+import { useSyncContext } from "@/lib/db/sync-context";
 import { seriesPath } from "@/lib/url";
 import { TagInput } from "./tag-input";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ export function SeriesForm({ onSuccess }: SeriesFormProps = {}) {
   const [description, setDescription] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const { trigger: syncNow } = useSyncContext();
 
   return (
     <form
@@ -33,6 +35,7 @@ export function SeriesForm({ onSuccess }: SeriesFormProps = {}) {
         setSaving(true);
         try {
           const series = await createSeries({ title, description, tags });
+          syncNow();
           if (onSuccess) {
             onSuccess(series);
           } else {
