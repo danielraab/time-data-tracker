@@ -39,6 +39,8 @@ export const t = {
     quickAddPointAdded: "Point added",
     quickAddDurationStarted: "Duration started",
     quickAddDurationEnded: "Duration ended",
+    quickAddSeriesPickerLabel: "Switch series",
+    quickAddSeriesPickerNavigate: "Go to series",
     quickLabel: {
       pointTitle: "Add point",
       durationTitle: "Start duration",

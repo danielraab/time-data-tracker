@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Quick-add series picker**: the series label in the Quick Add card is now an
+  interactive dropdown trigger. Clicking it opens a menu listing all non-archived series;
+  the current default is marked with a checkmark. Selecting a different series calls
+  `setDefaultSeries` and immediately switches the quick-add target without navigating away.
+  Each menu item also contains an external-link icon that navigates to the series detail
+  page. The picker is disabled while a switch is in flight to prevent race conditions.
+
 ### Fixed
 
 - **Deleted entries and series now sync correctly across devices**: deletions were
@@ -20,6 +29,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Foreground periodic sync**: `SyncProvider` now runs a 1-minute interval timer while
+  the user is signed in, ensuring changes from other devices are pulled even when no local
+  writes occur. This is independent of the Periodic Background Sync (which requires
+  Chromium and a closed tab). A shared `SYNC_INTERVAL_MS` constant (5 min) is exported
+  from `sync-context.tsx` and used by the service-worker registration so both sync paths
+  stay aligned.
+- **Sync re-entrancy guard**: a `syncInProgressRef` flag in `SyncProvider` suppresses the
+  PouchDB change-listener debounce while a sync run is in flight. This prevents pulled docs
+  (written to the local PouchDB during a pull) from immediately scheduling a redundant
+  follow-on sync.
 - **Immediate sync on every local write**: creating, editing, or deleting an entry or
   series now triggers a sync immediately (rather than waiting for the 2-second debounce)
   when the user is signed in. Affected components: `AddEntryDialog`, `QuickAdd`,
