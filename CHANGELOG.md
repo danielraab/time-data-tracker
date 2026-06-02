@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-06-02
+
 ### Changed
 
 - **Maintenance page data viewer**: the separate "Local data" and "Server data" cards
@@ -16,9 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **diff**: doc exists on both sides but they differ; badge shows which side is newer
   - **local-only**: doc exists in PouchDB but missing on server
   - **server-only**: doc exists on server but missing in local database
-  The summary row shows a breakdown of all four status counts plus soft-deleted count.
-  Expanding a diff or single-sided row automatically displays the JSON side-by-side
-  for easy comparison.
+    The summary row shows a breakdown of all four status counts plus soft-deleted count.
+    Expanding a diff or single-sided row automatically displays the JSON side-by-side
+    for easy comparison.
 
 ### Fixed
 
