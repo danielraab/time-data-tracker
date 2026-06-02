@@ -456,18 +456,33 @@ function DedupeCard() {
                   <p className="text-sm">{t.maintenance.endLinkFound(endLinkGroups.length)}</p>
                   <ul className="space-y-2 text-sm">
                     {endLinkGroups.map((g) => (
-                      <li key={g.start._id} className="rounded border px-3 py-2 space-y-1">
+                      <li key={g.start._id} className="rounded border px-3 py-2 space-y-1.5">
                         <div className="font-medium">
                           {t.maintenance.endLinkStartLabel}:{" "}
                           {g.start.label || t.entries.types.span_start} ·{" "}
                           {formatDateTime(g.start.timestamp)}
                         </div>
+                        <div className="font-mono text-xs text-muted-foreground">
+                          {g.start._id}
+                        </div>
                         <div className="text-xs text-muted-foreground">
                           {t.maintenance.endLinkKeep(g.keepEnd.label ?? "", formatDateTime(g.keepEnd.timestamp))}
                         </div>
-                        <div className="text-xs text-amber-600 dark:text-amber-400">
-                          {t.maintenance.endLinkUnlink(g.unlinkEnds.length)}
+                        <div className="font-mono text-xs text-muted-foreground">
+                          {g.keepEnd._id}
                         </div>
+                        {g.unlinkEnds.length > 0 && (
+                          <div className="space-y-1">
+                            <div className="text-xs text-amber-600 dark:text-amber-400">
+                              {t.maintenance.endLinkUnlink(g.unlinkEnds.length)}
+                            </div>
+                            {g.unlinkEnds.map((e) => (
+                              <div key={e._id} className="font-mono text-xs text-amber-600 dark:text-amber-400">
+                                {e._id}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </li>
                     ))}
                   </ul>
