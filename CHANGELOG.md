@@ -6,6 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-06-02
+
+### Fixed
+
+- **Hydration mismatch on sync button**: the sync button in the app header now carries
+  `suppressHydrationWarning` so React no longer warns about the `disabled` attribute
+  differing between the server render (where better-auth has already read the session
+  cookie) and the client's initial render (where `useSession()` has not yet fetched).
+- **Deleted entries counted on the dashboard**: `useAllEntries()` now calls the new
+  `listAllActiveEntries()` helper, which excludes soft-deleted entries. Previously,
+  entry counts and open-span detection on series cards could include trashed entries.
+
 ## [1.6.0] - 2026-06-02
 
 ### Added

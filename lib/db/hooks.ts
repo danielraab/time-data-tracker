@@ -8,7 +8,7 @@ import {
   listArchivedSeries,
   listSeries,
 } from "./series-repo";
-import { listAllEntries, listEntries } from "./entries-repo";
+import { listAllActiveEntries, listEntries } from "./entries-repo";
 import { groupTrashItems, type TrashGroup } from "./trash";
 import type { Entry, Series, TidatraDoc } from "@/lib/types";
 
@@ -91,12 +91,12 @@ export function useEntries(seriesId: string): {
   return { entries, loading };
 }
 
-/** All entries across every series — used by the dashboard for counts. */
+/** All non-deleted entries across every series — used by the dashboard for counts. */
 export function useAllEntries(): { entries: Entry[]; loading: boolean } {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
   useLive(async (signal) => {
-    const result = await listAllEntries();
+    const result = await listAllActiveEntries();
     if (!signal.cancelled) {
       setEntries(result);
       setLoading(false);

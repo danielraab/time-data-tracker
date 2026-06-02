@@ -18,6 +18,13 @@ export async function listAllEntries(): Promise<Entry[]> {
   return res.docs as Entry[];
 }
 
+/** Returns all non-deleted entries across every series (used by the dashboard). */
+export async function listAllActiveEntries(): Promise<Entry[]> {
+  const db = await getDb();
+  const res = await db.find({ selector: { type: "entry" } });
+  return (res.docs as Entry[]).filter((e) => !e.deletedAt);
+}
+
 export async function createEntry(input: EntryInput): Promise<Entry> {
   const db = await getDb();
   const ts = nowIso();
