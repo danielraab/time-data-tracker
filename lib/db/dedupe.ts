@@ -227,6 +227,92 @@ export async function applyDedupe(plan: DedupePlan): Promise<DedupeResult> {
   return { ...summary, written };
 }
 
+// ---------------------------------------------------------------------------
+// Duplicate end-link detection & repair
+// ---------------------------------------------------------------------------
+
+/**
+ * A span_start that has more than one span_end referencing it via `startEntryId`.
+ * Only the chronologically earliest end is the legitimate pair; the rest must be
+ * unlinked so they show as visible orphan ends rather than silently disappearing.
+ * Pure helper — exported for unit tests.
+ */
+export interface DuplicateEndLinkGroup {
+  start: Entry;
+  /** All span_end entries pointing at this start, sorted earliest-first. */
+  ends: Entry[];
+  /** ends[0] — the one that will be kept linked. */
+  keepEnd: Entry;
+  /** ends[1…] — the ones that will have startEntryId cleared. */
+  unlinkEnds: Entry[];
+}
+
+/**
+ * Finds all span_starts that have more than one span_end claiming them via
+ * `startEntryId`. Ignores soft-deleted entries.
+ * Pure helper — exported for unit tests.
+ */
+export function findDuplicateEndLinks(entries: Entry[]): DuplicateEndLinkGroup[] {
+  const active = entries.filter((e) => !e.deletedAt);
+  const startById = new Map(
+    active.filter((e) => e.entryType === "span_start").map((e) => [e._id, e]),
+  );
+
+  // Group span_ends by startEntryId.
+  const endsByStartId = new Map<string, Entry[]>();
+  for (const e of active) {
+    if (e.entryType !== "span_end" || !e.startEntryId) continue;
+    if (!startById.has(e.startEntryId)) continue;
+    const bucket = endsByStartId.get(e.startEntryId);
+    if (bucket) bucket.push(e);
+    else endsByStartId.set(e.startEntryId, [e]);
+  }
+
+  const groups: DuplicateEndLinkGroup[] = [];
+  for (const [startId, ends] of endsByStartId) {
+    if (ends.length < 2) continue;
+    const sorted = [...ends].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+    groups.push({
+      start: startById.get(startId)!,
+      ends: sorted,
+      keepEnd: sorted[0],
+      unlinkEnds: sorted.slice(1),
+    });
+  }
+  return groups;
+}
+
+/**
+ * Applies the duplicate end-link repair: clears `startEntryId` on every extra
+ * span_end so that only the earliest end remains paired with each span_start.
+ * Unlinked ends become orphan ends (visible and manageable in the UI).
+ * Returns the number of entries updated.
+ */
+export async function repairDuplicateEndLinks(
+  groups: DuplicateEndLinkGroup[],
+): Promise<number> {
+  if (groups.length === 0) return 0;
+  const db = await getDb();
+  const now = new Date().toISOString();
+
+  // Re-read live docs to get current _revs.
+  const ids = groups.flatMap((g) => g.unlinkEnds.map((e) => e._id));
+  const result = await db.allDocs<TidatraDoc>({ keys: ids, include_docs: true });
+  const writes: TidatraDoc[] = [];
+  for (const row of result.rows) {
+    if ("error" in row) continue;
+    const doc = row.doc as Entry | undefined;
+    if (!doc || doc.deletedAt) continue;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { startEntryId: _removed, ...rest } = doc;
+    writes.push({ ...rest, updatedAt: now } as TidatraDoc);
+  }
+
+  if (writes.length === 0) return 0;
+  const results = await db.bulkDocs(writes);
+  return results.filter((r) => "ok" in r && r.ok).length;
+}
+
 /**
  * Convenience dry-run: loads all local docs and returns the plan + summary
  * without writing anything. Intended to be called from the browser console or
@@ -235,6 +321,7 @@ export async function applyDedupe(plan: DedupePlan): Promise<DedupeResult> {
 export async function dryRunDedupe(): Promise<{
   plan: DedupePlan;
   summary: DedupeSummary;
+  endLinkGroups: DuplicateEndLinkGroup[];
 }> {
   const db = await getDb();
   const all = await db.allDocs<TidatraDoc>({ include_docs: true });
@@ -246,5 +333,6 @@ export async function dryRunDedupe(): Promise<{
     else if (doc?.type === "entry") entries.push(doc);
   }
   const plan = planDedupe(series, entries);
-  return { plan, summary: summarizePlan(plan) };
+  const endLinkGroups = findDuplicateEndLinks(entries);
+  return { plan, summary: summarizePlan(plan), endLinkGroups };
 }

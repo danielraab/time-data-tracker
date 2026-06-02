@@ -6,6 +6,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.4] - 2026-06-02
+
+### Fixed
+
+- **Invisible entries after adding a span_end**: when two `span_end` entries both
+  referenced the same `span_start` via `startEntryId`, the `resolveSpans` function in
+  `EntryList` added both to `pairedEndIds` (hiding both from the list) but only stored
+  the last one in `endByStartId`. The first end silently disappeared — not shown as a
+  paired span, not shown as an orphan end, just gone. Fixed by guarding with
+  `!endByStartId.has(startEntryId)`: only the chronologically earliest end is paired;
+  any further claimers stay visible as orphan ends.
+
+### Added
+
+- **Duplicate end-link detection and repair** on the maintenance page: the scan button
+  now also checks for `span_start` entries that have more than one `span_end` claiming
+  them. The results section lists each affected start, which end is kept (earliest
+  timestamp), and how many extras will be unlinked. A **Fix end links** button clears
+  `startEntryId` on the extra ends (making them visible orphan ends that can be
+  re-linked or deleted), then runs a sync.
+
 ## [1.6.3] - 2026-06-02
 
 ### Fixed

@@ -9,6 +9,8 @@ import {
   planDedupe,
   summarizePlan,
   applyDedupe,
+  findDuplicateEndLinks,
+  repairDuplicateEndLinks,
 } from "./dedupe";
 import type { Entry, Series } from "@/lib/types";
 
@@ -227,5 +229,116 @@ describe("applyDedupe", () => {
     const plan = planDedupe([], []);
     const result = await applyDedupe(plan);
     expect(result.written).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// findDuplicateEndLinks
+// ---------------------------------------------------------------------------
+
+describe("findDuplicateEndLinks", () => {
+  it("returns empty when no start has multiple ends", () => {
+    const start = entry("entry:s1", { entryType: "span_start" });
+    const end = entry("entry:e1", {
+      entryType: "span_end",
+      startEntryId: "entry:s1",
+    });
+    expect(findDuplicateEndLinks([start, end])).toHaveLength(0);
+  });
+
+  it("detects when two span_ends share the same startEntryId", () => {
+    const start = entry("entry:s1", {
+      entryType: "span_start",
+      timestamp: "2026-01-01T08:00:00.000Z",
+    });
+    const endA = entry("entry:e1", {
+      entryType: "span_end",
+      timestamp: "2026-01-01T09:00:00.000Z",
+      startEntryId: "entry:s1",
+    });
+    const endB = entry("entry:e2", {
+      entryType: "span_end",
+      timestamp: "2026-01-01T10:00:00.000Z",
+      startEntryId: "entry:s1",
+    });
+    const groups = findDuplicateEndLinks([start, endA, endB]);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].keepEnd._id).toBe("entry:e1");
+    expect(groups[0].unlinkEnds.map((e) => e._id)).toEqual(["entry:e2"]);
+  });
+
+  it("ignores soft-deleted entries", () => {
+    const start = entry("entry:s1", { entryType: "span_start" });
+    const endA = entry("entry:e1", {
+      entryType: "span_end",
+      startEntryId: "entry:s1",
+    });
+    const endB = entry("entry:e2", {
+      entryType: "span_end",
+      startEntryId: "entry:s1",
+      deletedAt: "2026-03-01T00:00:00.000Z",
+    });
+    expect(findDuplicateEndLinks([start, endA, endB])).toHaveLength(0);
+  });
+
+  it("picks the earliest end as keepEnd", () => {
+    const start = entry("entry:s1", { entryType: "span_start" });
+    const older = entry("entry:e-older", {
+      entryType: "span_end",
+      timestamp: "2026-01-01T09:00:00.000Z",
+      startEntryId: "entry:s1",
+    });
+    const newer = entry("entry:e-newer", {
+      entryType: "span_end",
+      timestamp: "2026-01-01T10:00:00.000Z",
+      startEntryId: "entry:s1",
+    });
+    const groups = findDuplicateEndLinks([start, newer, older]);
+    expect(groups[0].keepEnd._id).toBe("entry:e-older");
+    expect(groups[0].unlinkEnds[0]._id).toBe("entry:e-newer");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// repairDuplicateEndLinks (in-memory db)
+// ---------------------------------------------------------------------------
+
+describe("repairDuplicateEndLinks", () => {
+  beforeEach(async () => {
+    await createTestDb();
+  });
+  afterEach(async () => {
+    await destroyTestDb();
+  });
+
+  it("clears startEntryId on extra ends and leaves the kept end untouched", async () => {
+    const db = await getDb();
+    const start = entry("entry:s1", { entryType: "span_start" });
+    const keepEnd = entry("entry:e1", {
+      entryType: "span_end",
+      timestamp: "2026-01-01T09:00:00.000Z",
+      startEntryId: "entry:s1",
+    });
+    const unlinkEnd = entry("entry:e2", {
+      entryType: "span_end",
+      timestamp: "2026-01-01T10:00:00.000Z",
+      startEntryId: "entry:s1",
+    });
+    await db.bulkDocs([start, keepEnd, unlinkEnd]);
+
+    const groups = findDuplicateEndLinks([start, keepEnd, unlinkEnd]);
+    const written = await repairDuplicateEndLinks(groups);
+    expect(written).toBe(1);
+
+    const kept = (await db.get("entry:e1")) as Entry;
+    expect(kept.startEntryId).toBe("entry:s1");
+
+    const unlinked = (await db.get("entry:e2")) as Entry;
+    expect(unlinked.startEntryId).toBeUndefined();
+  });
+
+  it("is a no-op for empty groups", async () => {
+    const written = await repairDuplicateEndLinks([]);
+    expect(written).toBe(0);
   });
 });
