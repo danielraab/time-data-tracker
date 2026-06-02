@@ -10,7 +10,6 @@ import {
   RefreshCw,
   ChevronDown,
   ChevronRight,
-  ArrowLeftRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,76 +26,67 @@ import { formatDateTime } from "@/lib/format";
 import { t } from "@/lib/i18n/en";
 import type { TidatraDoc } from "@/lib/types";
 
+
 // ---------------------------------------------------------------------------
-// Helpers
+// Comparison doc row (both sides loaded)
 // ---------------------------------------------------------------------------
 
-async function fetchRemoteDocs(ids: string[]): Promise<Map<string, TidatraDoc>> {
-  const res = await fetch("/api/maintenance/docs", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ids }),
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const data = (await res.json()) as { docs: TidatraDoc[] };
-  return new Map(data.docs.map((d) => [d._id, d]));
+type ComparisonStatus = "in-sync" | "diff" | "local-only" | "server-only";
+
+interface ComparisonDocRowProps {
+  id: string;
+  local: TidatraDoc | null;
+  server: TidatraDoc | null;
 }
 
-async function fetchLocalDoc(id: string): Promise<TidatraDoc | null> {
-  const db = await getDb();
-  try {
-    return (await db.get(id)) as TidatraDoc;
-  } catch {
-    return null;
+function getComparisonStatus(local: TidatraDoc | null, server: TidatraDoc | null): ComparisonStatus {
+  if (local && server) {
+    return local.updatedAt === server.updatedAt ? "in-sync" : "diff";
   }
+  if (local) return "local-only";
+  return "server-only";
 }
 
-// ---------------------------------------------------------------------------
-// Per-document row with optional side-by-side comparison
-// ---------------------------------------------------------------------------
-
-interface DocRowProps {
-  doc: TidatraDoc;
-  /** Which side is the "other" to compare against */
-  otherSide: "local" | "remote";
-}
-
-function DocRow({ doc, otherSide }: DocRowProps) {
+function ComparisonDocRow({ id, local, server }: ComparisonDocRowProps) {
   const [open, setOpen] = useState(false);
-  const [comparing, setComparing] = useState(false);
-  const [other, setOther] = useState<TidatraDoc | null | "missing">(null);
+  const status = getComparisonStatus(local, server);
+  const doc = local ?? server!;
+  const deleted = doc && "deletedAt" in doc && !!doc.deletedAt;
+  const showSideBySide = open && (status === "diff" || status === "local-only" || status === "server-only");
 
-  const deleted = "deletedAt" in doc && !!doc.deletedAt;
-
-  async function loadOther() {
-    setComparing(true);
-    try {
-      if (otherSide === "remote") {
-        const map = await fetchRemoteDocs([doc._id]);
-        setOther(map.get(doc._id) ?? "missing");
-      } else {
-        const local = await fetchLocalDoc(doc._id);
-        setOther(local ?? "missing");
-      }
-    } catch {
-      setOther("missing");
-    } finally {
-      setComparing(false);
+  const statusBadge = (() => {
+    if (status === "in-sync") return null;
+    if (status === "local-only")
+      return (
+        <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+          local only
+        </span>
+      );
+    if (status === "server-only")
+      return (
+        <span className="shrink-0 rounded bg-blue-100 px-1.5 py-0.5 text-xs text-blue-800 dark:bg-blue-950 dark:text-blue-200">
+          server only
+        </span>
+      );
+    if (status === "diff") {
+      const isLocalNewer = local! && server! && local.updatedAt > server.updatedAt;
+      return (
+        <span className="shrink-0 rounded bg-orange-100 px-1.5 py-0.5 text-xs text-orange-800 dark:bg-orange-950 dark:text-orange-200">
+          {isLocalNewer ? "local newer" : "server newer"}
+        </span>
+      );
     }
-  }
-
-  const sideLabel = otherSide === "remote" ? "server" : "local";
-  const showComparison = other !== null;
+  })();
 
   return (
     <li className="rounded border text-xs">
       {/* Summary row */}
-      <div className="flex items-center gap-1 px-3 py-2">
+      <div className="flex items-center gap-2 px-3 py-2">
         <button
           className="flex flex-1 items-start gap-2 text-left"
           onClick={() => setOpen((o) => !o)}
         >
-          {open ? (
+          {showSideBySide ? (
             <ChevronDown className="mt-px size-3 shrink-0" />
           ) : (
             <ChevronRight className="mt-px size-3 shrink-0" />
@@ -104,7 +94,7 @@ function DocRow({ doc, otherSide }: DocRowProps) {
           <span
             className={`flex-1 font-mono break-all ${deleted ? "text-muted-foreground line-through" : ""}`}
           >
-            {doc._id}
+            {id}
           </span>
           {deleted && (
             <span className="shrink-0 rounded bg-muted px-1 text-muted-foreground">
@@ -117,52 +107,39 @@ function DocRow({ doc, otherSide }: DocRowProps) {
             {formatDateTime(doc.timestamp)}
           </span>
         )}
-        <button
-          className="ml-1 flex shrink-0 items-center gap-1 rounded px-1.5 py-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
-          title={`Compare with ${sideLabel}`}
-          onClick={loadOther}
-          disabled={comparing}
-        >
-          {comparing ? (
-            <Loader2 className="size-3 animate-spin" />
-          ) : (
-            <ArrowLeftRight className="size-3" />
-          )}
-        </button>
+        {statusBadge}
       </div>
 
-      {/* Expanded detail — single doc or side-by-side */}
-      {(open || showComparison) && (
-        <div className={`border-t ${showComparison ? "grid grid-cols-2 divide-x" : ""}`}>
-          {/* This side */}
+      {/* Side-by-side comparison */}
+      {showSideBySide && (
+        <div className="border-t grid grid-cols-2 divide-x">
+          {/* Local side */}
           <div>
-            {showComparison && (
-              <div className="bg-muted/30 px-3 py-1 text-xs font-semibold text-muted-foreground">
-                {otherSide === "remote" ? "Local" : "Server"}
-              </div>
+            <div className="bg-muted/30 px-3 py-1 text-xs font-semibold text-muted-foreground">
+              Local
+            </div>
+            {local ? (
+              <pre className="overflow-x-auto bg-muted/40 px-3 py-2 font-mono text-xs leading-relaxed">
+                {JSON.stringify(local, null, 2)}
+              </pre>
+            ) : (
+              <p className="px-3 py-2 text-muted-foreground italic">Not in local DB</p>
             )}
-            <pre className="overflow-x-auto bg-muted/40 px-3 py-2 font-mono text-xs leading-relaxed">
-              {JSON.stringify(doc, null, 2)}
-            </pre>
           </div>
 
-          {/* Other side */}
-          {showComparison && (
-            <div>
-              <div className="bg-muted/30 px-3 py-1 text-xs font-semibold text-muted-foreground capitalize">
-                {sideLabel}
-              </div>
-              {other === "missing" ? (
-                <p className="px-3 py-2 text-muted-foreground italic">
-                  Not found on {sideLabel}
-                </p>
-              ) : (
-                <pre className="overflow-x-auto bg-muted/40 px-3 py-2 font-mono text-xs leading-relaxed">
-                  {JSON.stringify(other, null, 2)}
-                </pre>
-              )}
+          {/* Server side */}
+          <div>
+            <div className="bg-muted/30 px-3 py-1 text-xs font-semibold text-muted-foreground">
+              Server
             </div>
-          )}
+            {server ? (
+              <pre className="overflow-x-auto bg-muted/40 px-3 py-2 font-mono text-xs leading-relaxed">
+                {JSON.stringify(server, null, 2)}
+              </pre>
+            ) : (
+              <p className="px-3 py-2 text-muted-foreground italic">Not on server</p>
+            )}
+          </div>
         </div>
       )}
     </li>
@@ -170,39 +147,49 @@ function DocRow({ doc, otherSide }: DocRowProps) {
 }
 
 // ---------------------------------------------------------------------------
-// Raw data card
+// Comparison card (local + server)
 // ---------------------------------------------------------------------------
 
-type RawLoadState = "idle" | "loading" | "loaded" | "error";
+type ComparisonLoadState = "idle" | "loading" | "loaded" | "error";
 
-interface RawDocsCardProps {
-  title: string;
-  source: "local" | "remote";
+interface ComparisonData {
+  local: Map<string, TidatraDoc>;
+  server: Map<string, TidatraDoc>;
 }
 
-function RawDocsCard({ title, source }: RawDocsCardProps) {
-  const [state, setState] = useState<RawLoadState>("idle");
-  const [docs, setDocs] = useState<TidatraDoc[]>([]);
+function ComparisonCard() {
+  const [state, setState] = useState<ComparisonLoadState>("idle");
+  const [data, setData] = useState<ComparisonData | null>(null);
   const [expanded, setExpanded] = useState(false);
 
   async function load() {
     setState("loading");
     try {
-      if (source === "local") {
-        const db = await getDb();
-        const result = await db.allDocs<TidatraDoc>({ include_docs: true });
-        setDocs(
-          result.rows
-            .map((r) => r.doc!)
-            .filter(Boolean)
-            .filter((d) => d.type === "series" || d.type === "entry"),
-        );
-      } else {
-        const res = await fetch("/api/sync?since=0");
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = (await res.json()) as { docs: TidatraDoc[] };
-        setDocs(data.docs ?? []);
-      }
+      const [localResult, serverRes] = await Promise.all([
+        (async () => {
+          const db = await getDb();
+          const result = await db.allDocs<TidatraDoc>({ include_docs: true });
+          return new Map(
+            result.rows
+              .map((r) => r.doc!)
+              .filter(Boolean)
+              .filter((d) => d.type === "series" || d.type === "entry")
+              .map((d) => [d._id, d]),
+          );
+        })(),
+        (async () => {
+          const res = await fetch("/api/sync?since=0");
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = (await res.json()) as { docs: TidatraDoc[] };
+          return new Map(
+            (data.docs ?? [])
+              .filter((d) => d.type === "series" || d.type === "entry")
+              .map((d) => [d._id, d]),
+          );
+        })(),
+      ]);
+
+      setData({ local: localResult, server: serverRes });
       setState("loaded");
       setExpanded(true);
     } catch {
@@ -210,16 +197,73 @@ function RawDocsCard({ title, source }: RawDocsCardProps) {
     }
   }
 
-  const otherSide = source === "local" ? "remote" : "local";
-  const series = docs.filter((d) => d.type === "series");
-  const entries = docs.filter((d) => d.type === "entry");
-  const deletedCount = docs.filter((d) => "deletedAt" in d && d.deletedAt).length;
+  if (!data) {
+    return (
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">Data Comparison</CardTitle>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={load}
+              disabled={state === "loading"}
+            >
+              {state === "loading" ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <RefreshCw className="size-4" />
+              )}
+              {state === "loading" ? "Loading…" : "Load"}
+            </Button>
+          </div>
+        </CardHeader>
+
+        {state === "error" && (
+          <CardContent>
+            <p className="text-sm text-destructive">Failed to load. Are you signed in?</p>
+          </CardContent>
+        )}
+      </Card>
+    );
+  }
+
+  const allIds = new Set([...data.local.keys(), ...data.server.keys()]);
+  const docs = Array.from(allIds).sort();
+
+  const series = docs.filter((id) => {
+    const local = data.local.get(id);
+    const server = data.server.get(id);
+    const doc = local ?? server;
+    return doc?.type === "series";
+  });
+
+  const entries = docs.filter((id) => {
+    const local = data.local.get(id);
+    const server = data.server.get(id);
+    const doc = local ?? server;
+    return doc?.type === "entry";
+  });
+
+  const deletedCount = docs.filter((id) => {
+    const local = data.local.get(id);
+    const server = data.server.get(id);
+    const doc = local ?? server;
+    return doc && "deletedAt" in doc && !!doc.deletedAt;
+  }).length;
+
+  const statusCounts = {
+    inSync: docs.filter((id) => getComparisonStatus(data.local.get(id) ?? null, data.server.get(id) ?? null) === "in-sync").length,
+    diff: docs.filter((id) => getComparisonStatus(data.local.get(id) ?? null, data.server.get(id) ?? null) === "diff").length,
+    localOnly: docs.filter((id) => getComparisonStatus(data.local.get(id) ?? null, data.server.get(id) ?? null) === "local-only").length,
+    serverOnly: docs.filter((id) => getComparisonStatus(data.local.get(id) ?? null, data.server.get(id) ?? null) === "server-only").length,
+  };
 
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base">{title}</CardTitle>
+          <CardTitle className="text-base">Data Comparison</CardTitle>
           <Button
             size="sm"
             variant="outline"
@@ -231,59 +275,59 @@ function RawDocsCard({ title, source }: RawDocsCardProps) {
             ) : (
               <RefreshCw className="size-4" />
             )}
-            {state === "loading" ? "Loading…" : state === "loaded" ? "Refresh" : "Load"}
+            {state === "loading" ? "Loading…" : "Refresh"}
           </Button>
         </div>
       </CardHeader>
 
-      {state === "error" && (
-        <CardContent>
-          <p className="text-sm text-destructive">Failed to load. Are you signed in?</p>
-        </CardContent>
-      )}
-
-      {state === "loaded" && (
-        <CardContent className="space-y-3">
-          <button
-            className="flex w-full items-center gap-1 text-sm font-medium"
-            onClick={() => setExpanded((e) => !e)}
-          >
-            {expanded ? (
-              <ChevronDown className="size-4" />
-            ) : (
-              <ChevronRight className="size-4" />
-            )}
-            {series.length} series · {entries.length} entries
-            {deletedCount > 0 && (
-              <span className="ml-2 text-xs text-muted-foreground">
-                ({deletedCount} soft-deleted)
-              </span>
-            )}
-          </button>
-
-          {expanded && (
-            <div className="space-y-4">
-              {[
-                { label: "Series", subset: series },
-                { label: "Entries", subset: entries },
-              ].map(({ label, subset }) =>
-                subset.length === 0 ? null : (
-                  <section key={label} className="space-y-1">
-                    <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      {label} ({subset.length})
-                    </h3>
-                    <ul className="space-y-1">
-                      {subset.map((doc) => (
-                        <DocRow key={doc._id} doc={doc} otherSide={otherSide} />
-                      ))}
-                    </ul>
-                  </section>
-                ),
-              )}
-            </div>
+      <CardContent className="space-y-3">
+        <button
+          className="flex w-full items-center gap-2 text-sm font-medium"
+          onClick={() => setExpanded((e) => !e)}
+        >
+          {expanded ? (
+            <ChevronDown className="size-4" />
+          ) : (
+            <ChevronRight className="size-4" />
           )}
-        </CardContent>
-      )}
+          <span className="flex-1">
+            {statusCounts.inSync} in-sync · {statusCounts.diff} diff · {statusCounts.localOnly} local-only ·{" "}
+            {statusCounts.serverOnly} server-only
+          </span>
+          {deletedCount > 0 && (
+            <span className="text-xs text-muted-foreground">
+              ({deletedCount} soft-deleted)
+            </span>
+          )}
+        </button>
+
+        {expanded && (
+          <div className="space-y-4">
+            {[
+              { label: "Series", subset: series },
+              { label: "Entries", subset: entries },
+            ].map(({ label, subset }) =>
+              subset.length === 0 ? null : (
+                <section key={label} className="space-y-1">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    {label} ({subset.length})
+                  </h3>
+                  <ul className="space-y-1">
+                    {subset.map((id) => (
+                      <ComparisonDocRow
+                        key={id}
+                        id={id}
+                        local={data.local.get(id) ?? null}
+                        server={data.server.get(id) ?? null}
+                      />
+                    ))}
+                  </ul>
+                </section>
+              ),
+            )}
+          </div>
+        )}
+      </CardContent>
     </Card>
   );
 }
@@ -534,8 +578,7 @@ export default function MaintenancePage() {
 
       <DedupeCard />
 
-      <RawDocsCard title="Local data (PouchDB)" source="local" />
-      <RawDocsCard title="Server data (CouchDB)" source="remote" />
+      <ComparisonCard />
     </main>
   );
 }
