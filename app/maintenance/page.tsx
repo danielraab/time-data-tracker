@@ -22,10 +22,10 @@ import {
 } from "@/lib/db/dedupe";
 import { getDb } from "@/lib/db/pouch";
 import { useSyncContext } from "@/lib/db/sync-context";
+import { useSession } from "@/lib/auth-client";
 import { formatDateTime } from "@/lib/format";
 import { t } from "@/lib/i18n/en";
 import type { TidatraDoc } from "@/lib/types";
-
 
 // ---------------------------------------------------------------------------
 // Comparison doc row (both sides loaded)
@@ -39,7 +39,10 @@ interface ComparisonDocRowProps {
   server: TidatraDoc | null;
 }
 
-function getComparisonStatus(local: TidatraDoc | null, server: TidatraDoc | null): ComparisonStatus {
+function getComparisonStatus(
+  local: TidatraDoc | null,
+  server: TidatraDoc | null,
+): ComparisonStatus {
   if (local && server) {
     return local.updatedAt === server.updatedAt ? "in-sync" : "diff";
   }
@@ -48,11 +51,10 @@ function getComparisonStatus(local: TidatraDoc | null, server: TidatraDoc | null
 }
 
 function ComparisonDocRow({ id, local, server }: ComparisonDocRowProps) {
-  const [open, setOpen] = useState(false);
+  const [showSideBySide, setShowSideBySide] = useState(false);
   const status = getComparisonStatus(local, server);
   const doc = local ?? server!;
   const deleted = doc && "deletedAt" in doc && !!doc.deletedAt;
-  const showSideBySide = open && (status === "diff" || status === "local-only" || status === "server-only");
 
   const statusBadge = (() => {
     if (status === "in-sync") return null;
@@ -69,7 +71,8 @@ function ComparisonDocRow({ id, local, server }: ComparisonDocRowProps) {
         </span>
       );
     if (status === "diff") {
-      const isLocalNewer = local! && server! && local.updatedAt > server.updatedAt;
+      const isLocalNewer =
+        local! && server! && local.updatedAt > server.updatedAt;
       return (
         <span className="shrink-0 rounded bg-orange-100 px-1.5 py-0.5 text-xs text-orange-800 dark:bg-orange-950 dark:text-orange-200">
           {isLocalNewer ? "local newer" : "server newer"}
@@ -84,7 +87,7 @@ function ComparisonDocRow({ id, local, server }: ComparisonDocRowProps) {
       <div className="flex items-center gap-2 px-3 py-2">
         <button
           className="flex flex-1 items-start gap-2 text-left"
-          onClick={() => setOpen((o) => !o)}
+          onClick={() => setShowSideBySide((o) => !o)}
         >
           {showSideBySide ? (
             <ChevronDown className="mt-px size-3 shrink-0" />
@@ -123,7 +126,9 @@ function ComparisonDocRow({ id, local, server }: ComparisonDocRowProps) {
                 {JSON.stringify(local, null, 2)}
               </pre>
             ) : (
-              <p className="px-3 py-2 text-muted-foreground italic">Not in local DB</p>
+              <p className="px-3 py-2 text-muted-foreground italic">
+                Not in local DB
+              </p>
             )}
           </div>
 
@@ -137,7 +142,9 @@ function ComparisonDocRow({ id, local, server }: ComparisonDocRowProps) {
                 {JSON.stringify(server, null, 2)}
               </pre>
             ) : (
-              <p className="px-3 py-2 text-muted-foreground italic">Not on server</p>
+              <p className="px-3 py-2 text-muted-foreground italic">
+                Not on server
+              </p>
             )}
           </div>
         </div>
@@ -161,33 +168,35 @@ function ComparisonCard() {
   const [state, setState] = useState<ComparisonLoadState>("idle");
   const [data, setData] = useState<ComparisonData | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const { data: session } = useSession();
 
   async function load() {
     setState("loading");
     try {
-      const [localResult, serverRes] = await Promise.all([
-        (async () => {
-          const db = await getDb();
-          const result = await db.allDocs<TidatraDoc>({ include_docs: true });
-          return new Map(
-            result.rows
-              .map((r) => r.doc!)
-              .filter(Boolean)
-              .filter((d) => d.type === "series" || d.type === "entry")
-              .map((d) => [d._id, d]),
-          );
-        })(),
-        (async () => {
-          const res = await fetch("/api/sync?since=0");
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const data = (await res.json()) as { docs: TidatraDoc[] };
-          return new Map(
-            (data.docs ?? [])
-              .filter((d) => d.type === "series" || d.type === "entry")
-              .map((d) => [d._id, d]),
-          );
-        })(),
-      ]);
+      const localResult = await (async () => {
+        const db = await getDb();
+        const result = await db.allDocs<TidatraDoc>({ include_docs: true });
+        return new Map(
+          result.rows
+            .map((r) => r.doc!)
+            .filter(Boolean)
+            .filter((d) => d.type === "series" || d.type === "entry")
+            .map((d) => [d._id, d]),
+        );
+      })();
+
+      const serverRes = session
+        ? await (async () => {
+            const res = await fetch("/api/sync?since=0");
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = (await res.json()) as { docs: TidatraDoc[] };
+            return new Map(
+              (data.docs ?? [])
+                .filter((d) => d.type === "series" || d.type === "entry")
+                .map((d) => [d._id, d]),
+            );
+          })()
+        : new Map();
 
       setData({ local: localResult, server: serverRes });
       setState("loaded");
@@ -221,7 +230,9 @@ function ComparisonCard() {
 
         {state === "error" && (
           <CardContent>
-            <p className="text-sm text-destructive">Failed to load. Are you signed in?</p>
+            <p className="text-sm text-destructive">
+              Failed to load. Are you signed in?
+            </p>
           </CardContent>
         )}
       </Card>
@@ -253,10 +264,34 @@ function ComparisonCard() {
   }).length;
 
   const statusCounts = {
-    inSync: docs.filter((id) => getComparisonStatus(data.local.get(id) ?? null, data.server.get(id) ?? null) === "in-sync").length,
-    diff: docs.filter((id) => getComparisonStatus(data.local.get(id) ?? null, data.server.get(id) ?? null) === "diff").length,
-    localOnly: docs.filter((id) => getComparisonStatus(data.local.get(id) ?? null, data.server.get(id) ?? null) === "local-only").length,
-    serverOnly: docs.filter((id) => getComparisonStatus(data.local.get(id) ?? null, data.server.get(id) ?? null) === "server-only").length,
+    inSync: docs.filter(
+      (id) =>
+        getComparisonStatus(
+          data.local.get(id) ?? null,
+          data.server.get(id) ?? null,
+        ) === "in-sync",
+    ).length,
+    diff: docs.filter(
+      (id) =>
+        getComparisonStatus(
+          data.local.get(id) ?? null,
+          data.server.get(id) ?? null,
+        ) === "diff",
+    ).length,
+    localOnly: docs.filter(
+      (id) =>
+        getComparisonStatus(
+          data.local.get(id) ?? null,
+          data.server.get(id) ?? null,
+        ) === "local-only",
+    ).length,
+    serverOnly: docs.filter(
+      (id) =>
+        getComparisonStatus(
+          data.local.get(id) ?? null,
+          data.server.get(id) ?? null,
+        ) === "server-only",
+    ).length,
   };
 
   return (
@@ -291,8 +326,15 @@ function ComparisonCard() {
             <ChevronRight className="size-4" />
           )}
           <span className="flex-1">
-            {statusCounts.inSync} in-sync · {statusCounts.diff} diff · {statusCounts.localOnly} local-only ·{" "}
-            {statusCounts.serverOnly} server-only
+            {session ? (
+              <>
+                {statusCounts.inSync} in-sync · {statusCounts.diff} diff ·{" "}
+                {statusCounts.localOnly} local-only · {statusCounts.serverOnly}{" "}
+                server-only
+              </>
+            ) : (
+              <>{series.length} series · {entries.length} entries</>
+            )}
           </span>
           {deletedCount > 0 && (
             <span className="text-xs text-muted-foreground">
@@ -300,6 +342,12 @@ function ComparisonCard() {
             </span>
           )}
         </button>
+
+        {!session && (
+          <p className="text-xs text-muted-foreground">
+            Sign in to compare with server data.
+          </p>
+        )}
 
         {expanded && (
           <div className="space-y-4">
@@ -341,19 +389,26 @@ type ScanStatus = "idle" | "scanning" | "scanned" | "error";
 function DedupeCard() {
   const [scanStatus, setScanStatus] = useState<ScanStatus>("idle");
   const [plan, setPlan] = useState<DedupePlan | null>(null);
-  const [endLinkGroups, setEndLinkGroups] = useState<DuplicateEndLinkGroup[]>([]);
+  const [endLinkGroups, setEndLinkGroups] = useState<DuplicateEndLinkGroup[]>(
+    [],
+  );
 
   // Merge duplicates state
-  const [mergeStatus, setMergeStatus] = useState<"idle" | "busy" | "done" | "error">("idle");
+  const [mergeStatus, setMergeStatus] = useState<
+    "idle" | "busy" | "done" | "error"
+  >("idle");
   const [mergedCount, setMergedCount] = useState(0);
 
   // End-link repair state
-  const [fixStatus, setFixStatus] = useState<"idle" | "busy" | "done" | "error">("idle");
+  const [fixStatus, setFixStatus] = useState<
+    "idle" | "busy" | "done" | "error"
+  >("idle");
   const [fixedCount, setFixedCount] = useState(0);
 
   const { trigger: syncNow } = useSyncContext();
 
-  const busy = scanStatus === "scanning" || mergeStatus === "busy" || fixStatus === "busy";
+  const busy =
+    scanStatus === "scanning" || mergeStatus === "busy" || fixStatus === "busy";
 
   async function scan() {
     setScanStatus("scanning");
@@ -384,7 +439,12 @@ function DedupeCard() {
   }
 
   async function fixEndLinks() {
-    if (!window.confirm("Unlink extra end entries? They will appear as orphan ends and can be re-linked manually.")) return;
+    if (
+      !window.confirm(
+        "Unlink extra end entries? They will appear as orphan ends and can be re-linked manually.",
+      )
+    )
+      return;
     setFixStatus("busy");
     try {
       const written = await repairDuplicateEndLinks(endLinkGroups);
@@ -409,7 +469,9 @@ function DedupeCard() {
         <CardTitle>{t.maintenance.dedupeHeading}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground">{t.maintenance.dedupeIntro}</p>
+        <p className="text-sm text-muted-foreground">
+          {t.maintenance.dedupeIntro}
+        </p>
 
         <Button onClick={scan} disabled={busy}>
           {scanStatus === "scanning" ? (
@@ -417,7 +479,9 @@ function DedupeCard() {
           ) : (
             <Search className="size-4" />
           )}
-          {scanStatus === "scanning" ? t.maintenance.scanning : t.maintenance.scan}
+          {scanStatus === "scanning"
+            ? t.maintenance.scanning
+            : t.maintenance.scan}
         </Button>
 
         {scanStatus === "error" && (
@@ -426,19 +490,27 @@ function DedupeCard() {
 
         {scanStatus === "scanned" && (
           <div className="space-y-6">
-
             {/* ── Duplicate docs section ── */}
             <section className="space-y-3">
-              <h2 className="text-sm font-semibold">{t.maintenance.dedupeHeading}</h2>
+              <h2 className="text-sm font-semibold">
+                {t.maintenance.dedupeHeading}
+              </h2>
               {hasDuplicates ? (
                 <div className="space-y-3">
-                  <p className="text-sm">{t.maintenance.foundSummary(dupSeries, dupEntries)}</p>
+                  <p className="text-sm">
+                    {t.maintenance.foundSummary(dupSeries, dupEntries)}
+                  </p>
 
                   {seriesGroups.length > 0 && (
                     <ul className="space-y-1 text-sm">
                       {seriesGroups.map((g) => (
-                        <li key={g.canonical._id} className="rounded border px-3 py-2">
-                          <span className="font-medium">{g.canonical.title || g.canonical._id}</span>{" "}
+                        <li
+                          key={g.canonical._id}
+                          className="rounded border px-3 py-2"
+                        >
+                          <span className="font-medium">
+                            {g.canonical.title || g.canonical._id}
+                          </span>{" "}
                           <span className="text-muted-foreground">
                             · {t.maintenance.mergesLabel(g.duplicates.length)}
                           </span>
@@ -450,9 +522,13 @@ function DedupeCard() {
                   {entryGroups.length > 0 && (
                     <ul className="space-y-1 text-sm">
                       {entryGroups.map((g) => (
-                        <li key={g.canonical._id} className="rounded border px-3 py-2">
+                        <li
+                          key={g.canonical._id}
+                          className="rounded border px-3 py-2"
+                        >
                           <span className="font-medium">
-                            {g.canonical.label || t.entries.types[g.canonical.entryType]}
+                            {g.canonical.label ||
+                              t.entries.types[g.canonical.entryType]}
                           </span>{" "}
                           <span className="text-muted-foreground">
                             · {formatDateTime(g.canonical.timestamp)} ·{" "}
@@ -463,28 +539,40 @@ function DedupeCard() {
                     </ul>
                   )}
 
-                  <p className="text-xs text-muted-foreground">{t.maintenance.mergeNote}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t.maintenance.mergeNote}
+                  </p>
 
                   {mergeStatus === "done" ? (
                     <p className="text-sm font-medium text-green-600 dark:text-green-500">
                       {t.maintenance.mergeSuccess(mergedCount)}
                     </p>
                   ) : (
-                    <Button variant="destructive" onClick={merge} disabled={busy}>
+                    <Button
+                      variant="destructive"
+                      onClick={merge}
+                      disabled={busy}
+                    >
                       {mergeStatus === "busy" ? (
                         <Loader2 className="size-4 animate-spin" />
                       ) : (
                         <Merge className="size-4" />
                       )}
-                      {mergeStatus === "busy" ? t.maintenance.merging : t.maintenance.merge}
+                      {mergeStatus === "busy"
+                        ? t.maintenance.merging
+                        : t.maintenance.merge}
                     </Button>
                   )}
                   {mergeStatus === "error" && (
-                    <p className="text-sm text-destructive">{t.maintenance.error}</p>
+                    <p className="text-sm text-destructive">
+                      {t.maintenance.error}
+                    </p>
                   )}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">{t.maintenance.noDuplicates}</p>
+                <p className="text-sm text-muted-foreground">
+                  {t.maintenance.noDuplicates}
+                </p>
               )}
             </section>
 
@@ -492,15 +580,24 @@ function DedupeCard() {
 
             {/* ── Duplicate end-link section ── */}
             <section className="space-y-3">
-              <h2 className="text-sm font-semibold">{t.maintenance.endLinkHeading}</h2>
-              <p className="text-sm text-muted-foreground">{t.maintenance.endLinkIntro}</p>
+              <h2 className="text-sm font-semibold">
+                {t.maintenance.endLinkHeading}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {t.maintenance.endLinkIntro}
+              </p>
 
               {hasEndLinkIssues ? (
                 <div className="space-y-3">
-                  <p className="text-sm">{t.maintenance.endLinkFound(endLinkGroups.length)}</p>
+                  <p className="text-sm">
+                    {t.maintenance.endLinkFound(endLinkGroups.length)}
+                  </p>
                   <ul className="space-y-2 text-sm">
                     {endLinkGroups.map((g) => (
-                      <li key={g.start._id} className="rounded border px-3 py-2 space-y-1.5">
+                      <li
+                        key={g.start._id}
+                        className="rounded border px-3 py-2 space-y-1.5"
+                      >
                         <div className="font-medium">
                           {t.maintenance.endLinkStartLabel}:{" "}
                           {g.start.label || t.entries.types.span_start} ·{" "}
@@ -510,7 +607,10 @@ function DedupeCard() {
                           {g.start._id}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {t.maintenance.endLinkKeep(g.keepEnd.label ?? "", formatDateTime(g.keepEnd.timestamp))}
+                          {t.maintenance.endLinkKeep(
+                            g.keepEnd.label ?? "",
+                            formatDateTime(g.keepEnd.timestamp),
+                          )}
                         </div>
                         <div className="font-mono text-xs text-muted-foreground">
                           {g.keepEnd._id}
@@ -521,7 +621,10 @@ function DedupeCard() {
                               {t.maintenance.endLinkUnlink(g.unlinkEnds.length)}
                             </div>
                             {g.unlinkEnds.map((e) => (
-                              <div key={e._id} className="font-mono text-xs text-amber-600 dark:text-amber-400">
+                              <div
+                                key={e._id}
+                                className="font-mono text-xs text-amber-600 dark:text-amber-400"
+                              >
                                 {e._id}
                               </div>
                             ))}
@@ -536,22 +639,31 @@ function DedupeCard() {
                       {t.maintenance.fixEndLinksSuccess(fixedCount)}
                     </p>
                   ) : (
-                    <Button variant="destructive" onClick={fixEndLinks} disabled={busy}>
+                    <Button
+                      variant="destructive"
+                      onClick={fixEndLinks}
+                      disabled={busy}
+                    >
                       {fixStatus === "busy" ? (
                         <Loader2 className="size-4 animate-spin" />
                       ) : null}
-                      {fixStatus === "busy" ? t.maintenance.fixingEndLinks : t.maintenance.fixEndLinks}
+                      {fixStatus === "busy"
+                        ? t.maintenance.fixingEndLinks
+                        : t.maintenance.fixEndLinks}
                     </Button>
                   )}
                   {fixStatus === "error" && (
-                    <p className="text-sm text-destructive">{t.maintenance.error}</p>
+                    <p className="text-sm text-destructive">
+                      {t.maintenance.error}
+                    </p>
                   )}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">{t.maintenance.endLinkNoIssues}</p>
+                <p className="text-sm text-muted-foreground">
+                  {t.maintenance.endLinkNoIssues}
+                </p>
               )}
             </section>
-
           </div>
         )}
       </CardContent>
