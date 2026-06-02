@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.2] - 2026-06-03
+
 ### Added
 
 - **Force sync buttons on data comparison items**: each document with a diff (local and
@@ -15,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Force to local**: overwrites the local copy with the server version
   - **Force to server**: overwrites the server copy with the local version, bumping
     its `updatedAt` timestamp to ensure it passes server-side last-write-wins logic
+
+### Fixed
+
+- **Data comparison card when not signed in**: when no active session exists, the
+  comparison card now loads and displays only local data (series and entries counts)
+  instead of attempting a server fetch. A hint prompts the user to sign in to enable
+  the full local-vs-server comparison.
 
 ## [1.7.1] - 2026-06-02
 
@@ -41,6 +50,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   sync checkpoint's `lastSync` timestamp; the incremental push filter treated them as
   already-synced and skipped them. Fixed by resetting `lastSync` to empty after a
   successful import, forcing the next sync cycle to push all local docs.
+- **Entry doc ID visible on hover**: the type icon on point, span-start, span-end, and
+  orphan-end items now carries a `title` attribute with the document `_id`, making it
+  easy to cross-reference entries with the maintenance data comparison view.
 
 ## [1.7.0] - 2026-06-02
 
