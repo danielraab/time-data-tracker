@@ -171,7 +171,9 @@ export const t = {
     seriesSection: "Deleted series",
     entriesSection: "Deleted entries",
     deletedAgo: (days: number) =>
-      days === 0 ? "Deleted today" : `Deleted ${days} ${days === 1 ? "day" : "days"} ago`,
+      days === 0
+        ? "Deleted today"
+        : `Deleted ${days} ${days === 1 ? "day" : "days"} ago`,
     purgeEligible: "Eligible for purge",
     daysUntilPurge: (days: number) =>
       `Purge in ${days} ${days === 1 ? "day" : "days"}`,
@@ -190,7 +192,7 @@ export const t = {
     backToHome: "Back",
     dedupeHeading: "Find duplicate series & entries",
     dedupeIntro:
-      "Series and entries created on different devices before you signed in got separate IDs, so the \"same\" item can exist twice. That makes edits and deletes look like they don't sync. Run a scan to find duplicates, review the result, then merge.",
+      'Series and entries created on different devices before you signed in got separate IDs, so the "same" item can exist twice. That makes edits and deletes look like they don\'t sync. Run a scan to find duplicates, review the result, then merge.',
     scan: "Scan for duplicates",
     scanning: "Scanning…",
     noDuplicates: "No duplicates found. Nothing to merge.",
@@ -206,7 +208,8 @@ export const t = {
       "Merging keeps the oldest copy of each item, moves entries onto the kept series, and sends the extra copies to Trash (recoverable for 30 days). A sync runs afterwards.",
     confirmMerge:
       "Merge all duplicates? Extra copies go to Trash and can be restored.",
-    mergeSuccess: (n: number) => `Merged. ${n} document${n === 1 ? "" : "s"} updated.`,
+    mergeSuccess: (n: number) =>
+      `Merged. ${n} document${n === 1 ? "" : "s"} updated.`,
     endLinkHeading: "Duplicate duration links",
     endLinkIntro:
       "These duration starts each have more than one end entry claiming them. Only the earliest end is kept linked; the rest are unlinked and shown as orphan ends so you can deal with them.",
@@ -214,18 +217,31 @@ export const t = {
       `${n} duration start${n === 1 ? "" : "s"} with multiple ends.`,
     endLinkNoIssues: "No duplicate end links found.",
     endLinkStartLabel: "Start",
-    endLinkKeep: (label: string, ts: string) => `keep: ${label || "Duration end"} at ${ts}`,
+    endLinkKeep: (label: string, ts: string) =>
+      `keep: ${label || "Duration end"} at ${ts}`,
     endLinkUnlink: (n: number) => `unlink ${n} extra end${n === 1 ? "" : "s"}`,
     fixEndLinks: "Fix end links",
     fixingEndLinks: "Fixing…",
-    fixEndLinksSuccess: (n: number) => `Fixed. ${n} end${n === 1 ? "" : "s"} unlinked.`,
+    fixEndLinksSuccess: (n: number) =>
+      `Fixed. ${n} end${n === 1 ? "" : "s"} unlinked.`,
     error: "Something went wrong. Nothing was changed.",
+    forceToLocal: "Force to local",
+    forceToServer: "Force to server",
+    forceToLocalWarning:
+      "This will overwrite the local entry with the server version (last-write-wins).",
+    forceToServerWarning:
+      "This will overwrite the server entry with your local version (last-write-wins).",
+    confirmForceToLocal:
+      "Overwrite the local entry with the server entry? Unsynced local changes will be lost.",
+    confirmForceToServer:
+      "Overwrite the server entry with your local entry? This affects your account across all devices.",
   },
   transfer: {
     title: "Export / Import",
     backToHome: "Back",
     exportHeading: "Export data",
-    exportIntro: "Select the series you want to export. Only active (non-deleted) entries are included.",
+    exportIntro:
+      "Select the series you want to export. Only active (non-deleted) entries are included.",
     selectAll: "Select all",
     deselectAll: "Deselect all",
     archivedSection: "Archived series",
@@ -233,14 +249,18 @@ export const t = {
     exportButton: "Download JSON",
     exportButtonBusy: "Preparing…",
     importHeading: "Import data",
-    importIntro: "Pick a TiDaTra export file (.json). Existing documents are updated only if the imported version is newer.",
+    importIntro:
+      "Pick a TiDaTra export file (.json). Existing documents are updated only if the imported version is newer.",
     importButton: "Choose file & import",
     importBusy: "Importing…",
     importSuccess: (s: number, e: number) =>
       `Imported: ${s} series, ${e} entries.`,
-    importSkipped: (n: number) => `${n} document${n === 1 ? "" : "s"} skipped (already up to date).`,
-    importError: "Could not read the file. Make sure it is a valid TiDaTra export.",
-    importVersionError: "Unsupported file version. Export the file again with this version of TiDaTra.",
+    importSkipped: (n: number) =>
+      `${n} document${n === 1 ? "" : "s"} skipped (already up to date).`,
+    importError:
+      "Could not read the file. Make sure it is a valid TiDaTra export.",
+    importVersionError:
+      "Unsupported file version. Export the file again with this version of TiDaTra.",
   },
   timeline: {
     heading: "Timeline",
