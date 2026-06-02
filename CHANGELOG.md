@@ -6,6 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Maintenance page data viewer**: the separate "Local data" and "Server data" cards
+  have been consolidated into a single "Data Comparison" card that loads both sides
+  simultaneously via parallel API calls. All unique document IDs are listed with a
+  status badge indicating the relationship between local and server versions:
+  - **in-sync**: doc exists on both sides with identical `updatedAt`
+  - **diff**: doc exists on both sides but they differ; badge shows which side is newer
+  - **local-only**: doc exists in PouchDB but missing on server
+  - **server-only**: doc exists on server but missing in local database
+  The summary row shows a breakdown of all four status counts plus soft-deleted count.
+  Expanding a diff or single-sided row automatically displays the JSON side-by-side
+  for easy comparison.
+
 ### Fixed
 
 - **Imported data not syncing to CouchDB**: when data was imported via the export/import
