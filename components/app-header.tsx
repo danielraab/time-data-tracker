@@ -84,6 +84,7 @@ function SyncButton({
       title={title}
       disabled={!hasSession || isSyncing}
       onClick={onPress}
+      suppressHydrationWarning
     >
       {icon}
     </Button>
