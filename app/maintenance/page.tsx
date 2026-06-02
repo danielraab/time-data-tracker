@@ -25,6 +25,7 @@ import { useSyncContext } from "@/lib/db/sync-context";
 import { useSession } from "@/lib/auth-client";
 import { formatDateTime } from "@/lib/format";
 import { t } from "@/lib/i18n/en";
+import { forceDocToLocal, forceDocToServer } from "@/lib/db/sync";
 import type { TidatraDoc } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
@@ -37,6 +38,7 @@ interface ComparisonDocRowProps {
   id: string;
   local: TidatraDoc | null;
   server: TidatraDoc | null;
+  onRefresh: () => void;
 }
 
 function getComparisonStatus(
@@ -44,17 +46,81 @@ function getComparisonStatus(
   server: TidatraDoc | null,
 ): ComparisonStatus {
   if (local && server) {
-    return local.updatedAt === server.updatedAt ? "in-sync" : "diff";
+    if (local.updatedAt !== server.updatedAt) return "diff";
+
+    //entry
+    if ("timestamp" in local && "timestamp" in server) {
+      return local.timestamp === server.timestamp &&
+        local.label === server.label &&
+        local.value === server.value &&
+        JSON.stringify(local.gps) === JSON.stringify(server.gps) &&
+        local.startEntryId === server.startEntryId
+        ? "in-sync"
+        : "diff";
+    }
+
+    //series
+    if ("title" in local && "title" in server) {
+      return local.title === server.title &&
+        local.description === server.description &&
+        JSON.stringify(local.tags) === JSON.stringify(server.tags) &&
+        local.maxDurationMinutes === server.maxDurationMinutes &&
+        local.isArchived === server.isArchived &&
+        local.isDefault === server.isDefault
+        ? "in-sync"
+        : "diff";
+    }
   }
   if (local) return "local-only";
   return "server-only";
 }
 
-function ComparisonDocRow({ id, local, server }: ComparisonDocRowProps) {
+function ComparisonDocRow({
+  id,
+  local,
+  server,
+  onRefresh,
+}: ComparisonDocRowProps) {
   const [showSideBySide, setShowSideBySide] = useState(false);
+  const [forceLocalState, setForceLocalState] = useState<
+    "idle" | "busy" | "done" | "error"
+  >("idle");
+  const [forceServerState, setForceServerState] = useState<
+    "idle" | "busy" | "done" | "error"
+  >("idle");
   const status = getComparisonStatus(local, server);
   const doc = local ?? server!;
   const deleted = doc && "deletedAt" in doc && !!doc.deletedAt;
+
+  async function handleForceToLocal() {
+    if (!window.confirm(t.maintenance.confirmForceToLocal)) return;
+    setForceLocalState("busy");
+    try {
+      await forceDocToLocal(id);
+      setForceLocalState("done");
+      setTimeout(() => {
+        setForceLocalState("idle");
+        onRefresh();
+      }, 1000);
+    } catch {
+      setForceLocalState("error");
+    }
+  }
+
+  async function handleForceToServer() {
+    if (!window.confirm(t.maintenance.confirmForceToServer)) return;
+    setForceServerState("busy");
+    try {
+      await forceDocToServer(id);
+      setForceServerState("done");
+      setTimeout(() => {
+        setForceServerState("idle");
+        onRefresh();
+      }, 1000);
+    } catch {
+      setForceServerState("error");
+    }
+  }
 
   const statusBadge = (() => {
     if (status === "in-sync") return null;
@@ -146,6 +212,74 @@ function ComparisonDocRow({ id, local, server }: ComparisonDocRowProps) {
                 Not on server
               </p>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Force sync buttons (only for diffs) */}
+      {status === "diff" && (
+        <div className="border-t bg-muted/20 px-3 py-2 space-y-2">
+          <div className="flex flex-col gap-2 text-xs">
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1"
+                onClick={handleForceToLocal}
+                disabled={
+                  forceLocalState === "busy" || forceServerState === "busy"
+                }
+              >
+                {forceLocalState === "busy" ? (
+                  <Loader2 className="size-3 animate-spin" />
+                ) : null}
+                <span className="text-xs">
+                  {forceLocalState === "busy"
+                    ? "Forcing…"
+                    : t.maintenance.forceToLocal}
+                </span>
+              </Button>
+              {forceLocalState === "done" && (
+                <span className="text-green-600 dark:text-green-500 flex items-center text-xs">
+                  Done
+                </span>
+              )}
+              {forceLocalState === "error" && (
+                <span className="text-destructive flex items-center text-xs">
+                  Error
+                </span>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1"
+                onClick={handleForceToServer}
+                disabled={
+                  forceLocalState === "busy" || forceServerState === "busy"
+                }
+              >
+                {forceServerState === "busy" ? (
+                  <Loader2 className="size-3 animate-spin" />
+                ) : null}
+                <span className="text-xs">
+                  {forceServerState === "busy"
+                    ? "Forcing…"
+                    : t.maintenance.forceToServer}
+                </span>
+              </Button>
+              {forceServerState === "done" && (
+                <span className="text-green-600 dark:text-green-500 flex items-center text-xs">
+                  Done
+                </span>
+              )}
+              {forceServerState === "error" && (
+                <span className="text-destructive flex items-center text-xs">
+                  Error
+                </span>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -333,7 +467,9 @@ function ComparisonCard() {
                 server-only
               </>
             ) : (
-              <>{series.length} series · {entries.length} entries</>
+              <>
+                {series.length} series · {entries.length} entries
+              </>
             )}
           </span>
           {deletedCount > 0 && (
@@ -367,6 +503,7 @@ function ComparisonCard() {
                         id={id}
                         local={data.local.get(id) ?? null}
                         server={data.server.get(id) ?? null}
+                        onRefresh={load}
                       />
                     ))}
                   </ul>

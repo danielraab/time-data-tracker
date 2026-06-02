@@ -158,6 +158,59 @@ export async function resetSyncLastPush(): Promise<void> {
 }
 
 /**
+ * Force-pulls a single doc from server, overwriting the local copy (if it exists).
+ * Used to resolve sync conflicts by trusting the server state for one doc.
+ */
+export async function forceDocToLocal(docId: string): Promise<void> {
+  // Fetch just this doc from the server
+  const res = await fetch(`/api/doc/${encodeURIComponent(docId)}`);
+  if (!res.ok) throw new Error(`Force pull failed: ${res.status}`);
+  const serverDoc = (await res.json()) as TidatraDoc;
+
+  // Get the local rev to update the server doc with it
+  const db = await getDb();
+  let localRev: string | undefined;
+  try {
+    const localDoc = (await db.get(docId)) as TidatraDoc;
+    localRev = localDoc._rev;
+  } catch {
+    // Doc doesn't exist locally
+  }
+
+  // Force write the server doc locally (overwriting regardless of timestamps)
+  const docToWrite = { ...serverDoc, _rev: localRev };
+  await db.put(docToWrite as unknown as TidatraDoc);
+}
+
+/**
+ * Force-pushes a single local doc to the server, overwriting the server copy.
+ * Used to resolve sync conflicts by trusting the local state for one doc.
+ */
+export async function forceDocToServer(docId: string): Promise<void> {
+  const db = await getDb();
+  let doc: TidatraDoc;
+  try {
+    doc = (await db.get(docId)) as TidatraDoc;
+  } catch {
+    throw new Error(`Doc not found locally`);
+  }
+
+  // Bump updatedAt to ensure it passes server-side LWW check
+  const docToPush = {
+    ...doc,
+    updatedAt: new Date().toISOString(),
+  };
+
+  // Push the single doc with updated timestamp
+  const res = await fetch("/api/sync", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ docs: [docToPush] }),
+  });
+  if (!res.ok) throw new Error(`Force push failed: ${res.status}`);
+}
+
+/**
  * Runs a full push-then-pull sync cycle for the given authenticated user.
  *
  * - Assigns `ownerId` to any still-unclaimed local series (guest → account

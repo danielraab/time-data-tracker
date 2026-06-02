@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Force sync buttons on data comparison items**: each document with a diff (local and
+  server versions differ) now displays "Force to local" and "Force to server" buttons
+  below the side-by-side JSON comparison. These resolve sync conflicts by trusting
+  one side:
+  - **Force to local**: overwrites the local copy with the server version
+  - **Force to server**: overwrites the server copy with the local version, bumping
+    its `updatedAt` timestamp to ensure it passes server-side last-write-wins logic
+
 ## [1.7.1] - 2026-06-02
 
 ### Changed
