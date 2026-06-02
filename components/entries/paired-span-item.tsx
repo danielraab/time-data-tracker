@@ -113,7 +113,10 @@ export function PairedSpanItem({
       }`}
     >
       <div className="flex items-start gap-3">
-        <div className="mt-1 text-primary/60">
+        <div
+          className="mt-1 text-primary/60"
+          title={`Start: ${start._id}, End: ${end._id}`}
+        >
           <Timer className="size-4" />
         </div>
 

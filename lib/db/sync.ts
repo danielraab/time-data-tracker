@@ -147,6 +147,17 @@ export async function applyPulledDocs(
 }
 
 /**
+ * Clears the lastSync timestamp so the next push sends all local docs.
+ * Call this after bulk-importing data whose updatedAt timestamps predate the
+ * last sync checkpoint — otherwise the incremental filter would skip them.
+ */
+export async function resetSyncLastPush(): Promise<void> {
+  const checkpoint = await loadCheckpoint();
+  if (!checkpoint) return;
+  await saveCheckpoint(checkpoint.userId, "", checkpoint.lastSeq, checkpoint._rev);
+}
+
+/**
  * Runs a full push-then-pull sync cycle for the given authenticated user.
  *
  * - Assigns `ownerId` to any still-unclaimed local series (guest → account

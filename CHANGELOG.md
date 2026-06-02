@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Imported data not syncing to CouchDB**: when data was imported via the export/import
+  page, or when clicking the manual sync button, the series and entries were written to
+  the local PouchDB but not pushed to the server. Root cause: imported docs retain their
+  original historical `updatedAt` timestamps from the export file, which predate the
+  sync checkpoint's `lastSync` timestamp; the incremental push filter treated them as
+  already-synced and skipped them. Fixed by resetting `lastSync` to empty after a
+  successful import, forcing the next sync cycle to push all local docs.
+
 ## [1.7.0] - 2026-06-02
 
 ### Added

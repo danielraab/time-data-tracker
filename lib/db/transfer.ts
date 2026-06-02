@@ -1,6 +1,9 @@
+"use client";
+
 import { listSeries, listArchivedSeries } from "./series-repo";
 import { listEntries } from "./entries-repo";
 import { getDb } from "./pouch";
+import { resetSyncLastPush } from "./sync";
 import type { Series, Entry } from "@/lib/types";
 
 export interface ExportFile {
@@ -91,6 +94,11 @@ export async function importData(file: ExportFile): Promise<ImportResult> {
     else if (outcome === "updated") result.entriesUpdated++;
     else result.entriesSkipped++;
   }
+
+  // Imported docs carry historical updatedAt timestamps that predate the last
+  // sync checkpoint, so they would be silently skipped by the incremental push
+  // filter. Reset the checkpoint so the next sync does a full push.
+  await resetSyncLastPush();
 
   return result;
 }

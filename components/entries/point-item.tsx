@@ -77,7 +77,7 @@ export function PointItem({
   return (
     <li className="rounded-lg border border-border bg-card p-3">
       <div className="flex items-start gap-3">
-        <div className="mt-1 text-muted-foreground">
+        <div className="mt-1 text-muted-foreground" title={entry._id}>
           {isNumber ? (
             <Hash className="size-4" />
           ) : (
