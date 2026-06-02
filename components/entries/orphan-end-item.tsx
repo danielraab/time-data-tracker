@@ -96,7 +96,7 @@ export function OrphanEndItem({
   return (
     <li className="rounded-lg border border-amber-500/60 bg-amber-50/40 p-3 dark:bg-amber-500/5">
       <div className="flex items-start gap-3">
-        <div className="mt-1 text-muted-foreground">
+        <div className="mt-1 text-muted-foreground" title={entry._id}>
           <Square className="size-4" />
         </div>
 
