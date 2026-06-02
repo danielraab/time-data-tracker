@@ -11,9 +11,11 @@ import {
   UserIcon,
   WifiOffIcon,
 } from "lucide-react";
+import { useState } from "react";
 import { t } from "@/lib/i18n/en";
 import { useSession, signOut } from "@/lib/auth-client";
 import { destroyDb } from "@/lib/db/pouch";
+import { runSync } from "@/lib/db/sync";
 import { useSyncContext, type SyncState } from "@/lib/db/sync-context";
 import { Button } from "@/components/ui/button";
 import {
@@ -94,6 +96,7 @@ function SyncButton({
 export function AppHeader() {
   const { data: session } = useSession();
   const { state: syncState, trigger } = useSyncContext();
+  const [clearingInProgress, setClearingInProgress] = useState(false);
 
   return (
     <header className="border-b border-border bg-card">
@@ -174,17 +177,34 @@ export function AppHeader() {
 
                 <DropdownMenuItem
                   variant="destructive"
-                  onSelect={() =>
-                    destroyDb().then(() =>
+                  disabled={clearingInProgress}
+                  onSelect={async (e) => {
+                    e.preventDefault();
+                    setClearingInProgress(true);
+                    try {
+                      try {
+                        await runSync(session!.user.id);
+                      } catch {
+                        if (!window.confirm(t.auth.syncFailedClear)) {
+                          return;
+                        }
+                      }
+                      await destroyDb();
                       signOut({
                         fetchOptions: {
                           onSuccess: () => window.location.reload(),
                         },
-                      }),
-                    )
-                  }
+                      });
+                    } finally {
+                      setClearingInProgress(false);
+                    }
+                  }}
                 >
-                  <LogOutIcon />
+                  {clearingInProgress ? (
+                    <LoaderIcon className="animate-spin" />
+                  ) : (
+                    <LogOutIcon />
+                  )}
                   {t.auth.signOutAndClear}
                 </DropdownMenuItem>
               </DropdownMenuContent>
