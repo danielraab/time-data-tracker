@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.2] - 2026-06-02
+
+### Fixed
+
+- **Unsynced changes lost on clear-and-sign-out**: the "Clear data and sign out"
+  handler now awaits a full sync cycle before destroying the local database. If
+  the sync fails (e.g. offline), a confirmation dialog appears so the user can
+  choose to force-clear or abort. Previously, unsynced changes were silently
+  discarded without any sync attempt, making them unrecoverable even after
+  signing back in.
+
 ## [1.6.1] - 2026-06-02
 
 ### Fixed
