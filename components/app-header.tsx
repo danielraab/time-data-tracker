@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   CheckIcon,
+  DownloadIcon,
   LoaderIcon,
   LogOutIcon,
   RefreshCwIcon,
@@ -155,6 +156,12 @@ export function AppHeader() {
                     <Link href="/settings">
                       <SettingsIcon />
                       {t.auth.settings}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/export-import">
+                      <DownloadIcon />
+                      {t.auth.exportImport}
                     </Link>
                   </DropdownMenuItem>
                 </DropdownMenuGroup>

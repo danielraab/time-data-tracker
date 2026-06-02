@@ -6,6 +6,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-06-02
+
+### Added
+
+- **Export / Import page** (`/export-import`): new page reachable from the account
+  menu that lets users back up their data to a JSON file and restore it on any device.
+  - **Export**: checkbox list of all active series (pre-selected) with an expandable
+    section for archived series (unchecked by default). "Select all / Deselect all"
+    toggle. Clicking **Download JSON** produces a `tidatra-export-YYYY-MM-DD.json` file
+    containing only non-deleted series and their non-deleted entries, with PouchDB
+    revision fields stripped for portability.
+  - **Import**: file picker that accepts `.json` files. Each document in the file is
+    merged into the local database using `updatedAt` last-write-wins: new documents are
+    inserted, documents whose imported version is newer than the local copy are updated,
+    and already-up-to-date documents are skipped. A result summary (series / entries
+    imported and skipped) is shown after each import.
+  - File format is versioned (`version: 1`) so future format changes can be detected and
+    rejected with a clear error message.
+
 ## [1.6.4] - 2026-06-02
 
 ### Fixed
