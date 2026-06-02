@@ -184,6 +184,30 @@ export const t = {
     notOwner: "Only the owner can purge this item.",
     trashLink: "Trash",
   },
+  maintenance: {
+    title: "Maintenance",
+    backToHome: "Back",
+    dedupeHeading: "Find duplicate series & entries",
+    dedupeIntro:
+      "Series and entries created on different devices before you signed in got separate IDs, so the \"same\" item can exist twice. That makes edits and deletes look like they don't sync. Run a scan to find duplicates, review the result, then merge.",
+    scan: "Scan for duplicates",
+    scanning: "Scanning…",
+    noDuplicates: "No duplicates found. Nothing to merge.",
+    foundSummary: (series: number, entries: number) =>
+      `Found ${series} duplicate ${series === 1 ? "series" : "series"} and ${entries} duplicate ${entries === 1 ? "entry" : "entries"}.`,
+    seriesGroupsHeading: "Duplicate series",
+    entryGroupsHeading: "Duplicate entries",
+    keepsLabel: "keep",
+    mergesLabel: (n: number) => `merges ${n} duplicate${n === 1 ? "" : "s"}`,
+    merge: "Merge duplicates",
+    merging: "Merging…",
+    mergeNote:
+      "Merging keeps the oldest copy of each item, moves entries onto the kept series, and sends the extra copies to Trash (recoverable for 30 days). A sync runs afterwards.",
+    confirmMerge:
+      "Merge all duplicates? Extra copies go to Trash and can be restored.",
+    mergeSuccess: (n: number) => `Merged. ${n} document${n === 1 ? "" : "s"} updated.`,
+    error: "Something went wrong. Nothing was changed.",
+  },
   timeline: {
     heading: "Timeline",
     empty: "Add entries to see them on the timeline.",

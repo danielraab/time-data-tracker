@@ -108,8 +108,42 @@ export async function applyPulledDocs(
   }
 
   if (toWrite.length === 0) return 0;
-  await db.bulkDocs(toWrite as TidatraDoc[]);
-  return toWrite.length;
+
+  // bulkDocs does NOT throw on per-doc conflicts — it returns an Error entry in
+  // the results array (in input order). A conflict means the local doc changed
+  // between our `db.get` above and this write. Silently dropping those would
+  // lose pulled changes, so we re-fetch the current rev, re-apply LWW, and
+  // retry once. Anything still conflicting after the retry is left for the next
+  // sync cycle rather than counted as written.
+  let written = 0;
+  let pending = toWrite;
+  for (let attempt = 0; attempt < 2 && pending.length > 0; attempt++) {
+    const results = await db.bulkDocs(pending as TidatraDoc[]);
+    const retry: TidatraDoc[] = [];
+    for (let i = 0; i < results.length; i++) {
+      const res = results[i] as
+        | PouchDB.Core.Response
+        | (PouchDB.Core.Error & { name?: string });
+      if ("ok" in res && res.ok) {
+        written++;
+        continue;
+      }
+      if (attempt === 0 && "name" in res && res.name === "conflict") {
+        const incoming = pending[i];
+        try {
+          const existing = (await db.get(incoming._id)) as TidatraDoc;
+          if (lastWriteWins(incoming, existing)) {
+            retry.push({ ...incoming, _rev: existing._rev });
+          }
+        } catch {
+          // Doc vanished — re-insert without a _rev on the retry pass.
+          retry.push({ ...incoming, _rev: undefined });
+        }
+      }
+    }
+    pending = retry;
+  }
+  return written;
 }
 
 /**
