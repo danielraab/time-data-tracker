@@ -206,6 +206,18 @@ export const t = {
     confirmMerge:
       "Merge all duplicates? Extra copies go to Trash and can be restored.",
     mergeSuccess: (n: number) => `Merged. ${n} document${n === 1 ? "" : "s"} updated.`,
+    endLinkHeading: "Duplicate duration links",
+    endLinkIntro:
+      "These duration starts each have more than one end entry claiming them. Only the earliest end is kept linked; the rest are unlinked and shown as orphan ends so you can deal with them.",
+    endLinkFound: (n: number) =>
+      `${n} duration start${n === 1 ? "" : "s"} with multiple ends.`,
+    endLinkNoIssues: "No duplicate end links found.",
+    endLinkStartLabel: "Start",
+    endLinkKeep: (label: string, ts: string) => `keep: ${label || "Duration end"} at ${ts}`,
+    endLinkUnlink: (n: number) => `unlink ${n} extra end${n === 1 ? "" : "s"}`,
+    fixEndLinks: "Fix end links",
+    fixingEndLinks: "Fixing…",
+    fixEndLinksSuccess: (n: number) => `Fixed. ${n} end${n === 1 ? "" : "s"} unlinked.`,
     error: "Something went wrong. Nothing was changed.",
   },
   timeline: {

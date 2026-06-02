@@ -29,8 +29,13 @@ function resolveSpans(entries: Entry[]): ResolvedSpans {
     if (
       entry.entryType === "span_end" &&
       entry.startEntryId &&
-      startIds.has(entry.startEntryId)
+      startIds.has(entry.startEntryId) &&
+      !endByStartId.has(entry.startEntryId)
     ) {
+      // First span_end to claim a start wins (entries are sorted by timestamp
+      // ascending, so the earliest end is preferred). Any later span_end that
+      // also references the same start is NOT added to pairedEndIds — it stays
+      // visible as an OrphanEndItem instead of disappearing silently.
       endByStartId.set(entry.startEntryId, entry);
       pairedEndIds.add(entry._id);
     }

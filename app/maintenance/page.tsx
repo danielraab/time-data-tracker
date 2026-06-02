@@ -14,7 +14,13 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { dryRunDedupe, applyDedupe, type DedupePlan } from "@/lib/db/dedupe";
+import {
+  dryRunDedupe,
+  applyDedupe,
+  repairDuplicateEndLinks,
+  type DedupePlan,
+  type DuplicateEndLinkGroup,
+} from "@/lib/db/dedupe";
 import { getDb } from "@/lib/db/pouch";
 import { useSyncContext } from "@/lib/db/sync-context";
 import { formatDateTime } from "@/lib/format";
@@ -283,39 +289,66 @@ function RawDocsCard({ title, source }: RawDocsCardProps) {
 }
 
 // ---------------------------------------------------------------------------
-// Dedupe card
+// Dedupe + end-link card
 // ---------------------------------------------------------------------------
 
-type DedupeStatus = "idle" | "scanning" | "scanned" | "merging" | "done" | "error";
+type ScanStatus = "idle" | "scanning" | "scanned" | "error";
 
 function DedupeCard() {
-  const [status, setStatus] = useState<DedupeStatus>("idle");
+  const [scanStatus, setScanStatus] = useState<ScanStatus>("idle");
   const [plan, setPlan] = useState<DedupePlan | null>(null);
+  const [endLinkGroups, setEndLinkGroups] = useState<DuplicateEndLinkGroup[]>([]);
+
+  // Merge duplicates state
+  const [mergeStatus, setMergeStatus] = useState<"idle" | "busy" | "done" | "error">("idle");
   const [mergedCount, setMergedCount] = useState(0);
+
+  // End-link repair state
+  const [fixStatus, setFixStatus] = useState<"idle" | "busy" | "done" | "error">("idle");
+  const [fixedCount, setFixedCount] = useState(0);
+
   const { trigger: syncNow } = useSyncContext();
 
+  const busy = scanStatus === "scanning" || mergeStatus === "busy" || fixStatus === "busy";
+
   async function scan() {
-    setStatus("scanning");
+    setScanStatus("scanning");
+    setMergeStatus("idle");
+    setFixStatus("idle");
     try {
-      const { plan } = await dryRunDedupe();
-      setPlan(plan);
-      setStatus("scanned");
+      const result = await dryRunDedupe();
+      setPlan(result.plan);
+      setEndLinkGroups(result.endLinkGroups);
+      setScanStatus("scanned");
     } catch {
-      setStatus("error");
+      setScanStatus("error");
     }
   }
 
   async function merge() {
     if (!plan) return;
     if (!window.confirm(t.maintenance.confirmMerge)) return;
-    setStatus("merging");
+    setMergeStatus("busy");
     try {
       const result = await applyDedupe(plan);
       setMergedCount(result.written);
-      setStatus("done");
+      setMergeStatus("done");
       syncNow();
     } catch {
-      setStatus("error");
+      setMergeStatus("error");
+    }
+  }
+
+  async function fixEndLinks() {
+    if (!window.confirm("Unlink extra end entries? They will appear as orphan ends and can be re-linked manually.")) return;
+    setFixStatus("busy");
+    try {
+      const written = await repairDuplicateEndLinks(endLinkGroups);
+      setFixedCount(written);
+      setFixStatus("done");
+      syncNow();
+    } catch {
+      setFixStatus("error");
     }
   }
 
@@ -324,6 +357,7 @@ function DedupeCard() {
   const hasDuplicates = seriesGroups.length > 0 || entryGroups.length > 0;
   const dupSeries = seriesGroups.reduce((n, g) => n + g.duplicates.length, 0);
   const dupEntries = entryGroups.reduce((n, g) => n + g.duplicates.length, 0);
+  const hasEndLinkIssues = endLinkGroups.length > 0;
 
   return (
     <Card>
@@ -333,95 +367,134 @@ function DedupeCard() {
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">{t.maintenance.dedupeIntro}</p>
 
-        <Button
-          onClick={scan}
-          disabled={status === "scanning" || status === "merging"}
-        >
-          {status === "scanning" ? (
+        <Button onClick={scan} disabled={busy}>
+          {scanStatus === "scanning" ? (
             <Loader2 className="size-4 animate-spin" />
           ) : (
             <Search className="size-4" />
           )}
-          {status === "scanning" ? t.maintenance.scanning : t.maintenance.scan}
+          {scanStatus === "scanning" ? t.maintenance.scanning : t.maintenance.scan}
         </Button>
 
-        {status === "error" && (
+        {scanStatus === "error" && (
           <p className="text-sm text-destructive">{t.maintenance.error}</p>
         )}
 
-        {status === "done" && (
-          <p className="text-sm font-medium text-green-600 dark:text-green-500">
-            {t.maintenance.mergeSuccess(mergedCount)}
-          </p>
+        {scanStatus === "scanned" && (
+          <div className="space-y-6">
+
+            {/* ── Duplicate docs section ── */}
+            <section className="space-y-3">
+              <h2 className="text-sm font-semibold">{t.maintenance.dedupeHeading}</h2>
+              {hasDuplicates ? (
+                <div className="space-y-3">
+                  <p className="text-sm">{t.maintenance.foundSummary(dupSeries, dupEntries)}</p>
+
+                  {seriesGroups.length > 0 && (
+                    <ul className="space-y-1 text-sm">
+                      {seriesGroups.map((g) => (
+                        <li key={g.canonical._id} className="rounded border px-3 py-2">
+                          <span className="font-medium">{g.canonical.title || g.canonical._id}</span>{" "}
+                          <span className="text-muted-foreground">
+                            · {t.maintenance.mergesLabel(g.duplicates.length)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {entryGroups.length > 0 && (
+                    <ul className="space-y-1 text-sm">
+                      {entryGroups.map((g) => (
+                        <li key={g.canonical._id} className="rounded border px-3 py-2">
+                          <span className="font-medium">
+                            {g.canonical.label || t.entries.types[g.canonical.entryType]}
+                          </span>{" "}
+                          <span className="text-muted-foreground">
+                            · {formatDateTime(g.canonical.timestamp)} ·{" "}
+                            {t.maintenance.mergesLabel(g.duplicates.length)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  <p className="text-xs text-muted-foreground">{t.maintenance.mergeNote}</p>
+
+                  {mergeStatus === "done" ? (
+                    <p className="text-sm font-medium text-green-600 dark:text-green-500">
+                      {t.maintenance.mergeSuccess(mergedCount)}
+                    </p>
+                  ) : (
+                    <Button variant="destructive" onClick={merge} disabled={busy}>
+                      {mergeStatus === "busy" ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <Merge className="size-4" />
+                      )}
+                      {mergeStatus === "busy" ? t.maintenance.merging : t.maintenance.merge}
+                    </Button>
+                  )}
+                  {mergeStatus === "error" && (
+                    <p className="text-sm text-destructive">{t.maintenance.error}</p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">{t.maintenance.noDuplicates}</p>
+              )}
+            </section>
+
+            <div className="border-t" />
+
+            {/* ── Duplicate end-link section ── */}
+            <section className="space-y-3">
+              <h2 className="text-sm font-semibold">{t.maintenance.endLinkHeading}</h2>
+              <p className="text-sm text-muted-foreground">{t.maintenance.endLinkIntro}</p>
+
+              {hasEndLinkIssues ? (
+                <div className="space-y-3">
+                  <p className="text-sm">{t.maintenance.endLinkFound(endLinkGroups.length)}</p>
+                  <ul className="space-y-2 text-sm">
+                    {endLinkGroups.map((g) => (
+                      <li key={g.start._id} className="rounded border px-3 py-2 space-y-1">
+                        <div className="font-medium">
+                          {t.maintenance.endLinkStartLabel}:{" "}
+                          {g.start.label || t.entries.types.span_start} ·{" "}
+                          {formatDateTime(g.start.timestamp)}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {t.maintenance.endLinkKeep(g.keepEnd.label ?? "", formatDateTime(g.keepEnd.timestamp))}
+                        </div>
+                        <div className="text-xs text-amber-600 dark:text-amber-400">
+                          {t.maintenance.endLinkUnlink(g.unlinkEnds.length)}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {fixStatus === "done" ? (
+                    <p className="text-sm font-medium text-green-600 dark:text-green-500">
+                      {t.maintenance.fixEndLinksSuccess(fixedCount)}
+                    </p>
+                  ) : (
+                    <Button variant="destructive" onClick={fixEndLinks} disabled={busy}>
+                      {fixStatus === "busy" ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : null}
+                      {fixStatus === "busy" ? t.maintenance.fixingEndLinks : t.maintenance.fixEndLinks}
+                    </Button>
+                  )}
+                  {fixStatus === "error" && (
+                    <p className="text-sm text-destructive">{t.maintenance.error}</p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">{t.maintenance.endLinkNoIssues}</p>
+              )}
+            </section>
+
+          </div>
         )}
-
-        {(status === "scanned" || status === "merging") &&
-          (hasDuplicates ? (
-            <div className="space-y-4">
-              <p className="text-sm font-medium">
-                {t.maintenance.foundSummary(dupSeries, dupEntries)}
-              </p>
-
-              {seriesGroups.length > 0 && (
-                <section className="space-y-2">
-                  <h2 className="text-sm font-semibold">
-                    {t.maintenance.seriesGroupsHeading}
-                  </h2>
-                  <ul className="space-y-1 text-sm">
-                    {seriesGroups.map((g) => (
-                      <li key={g.canonical._id} className="rounded border px-3 py-2">
-                        <span className="font-medium">
-                          {g.canonical.title || g.canonical._id}
-                        </span>{" "}
-                        <span className="text-muted-foreground">
-                          · {t.maintenance.mergesLabel(g.duplicates.length)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              )}
-
-              {entryGroups.length > 0 && (
-                <section className="space-y-2">
-                  <h2 className="text-sm font-semibold">
-                    {t.maintenance.entryGroupsHeading}
-                  </h2>
-                  <ul className="space-y-1 text-sm">
-                    {entryGroups.map((g) => (
-                      <li key={g.canonical._id} className="rounded border px-3 py-2">
-                        <span className="font-medium">
-                          {g.canonical.label ||
-                            t.entries.types[g.canonical.entryType]}
-                        </span>{" "}
-                        <span className="text-muted-foreground">
-                          · {formatDateTime(g.canonical.timestamp)} ·{" "}
-                          {t.maintenance.mergesLabel(g.duplicates.length)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              )}
-
-              <p className="text-xs text-muted-foreground">{t.maintenance.mergeNote}</p>
-
-              <Button
-                variant="destructive"
-                onClick={merge}
-                disabled={status === "merging"}
-              >
-                {status === "merging" ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Merge className="size-4" />
-                )}
-                {status === "merging" ? t.maintenance.merging : t.maintenance.merge}
-              </Button>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">{t.maintenance.noDuplicates}</p>
-          ))}
       </CardContent>
     </Card>
   );
