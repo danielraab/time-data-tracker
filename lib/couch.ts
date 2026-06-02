@@ -181,6 +181,40 @@ export async function deleteDocsByIds(
   return toDelete.length;
 }
 
+/**
+ * Fetches specific docs by ID from the user's CouchDB database.
+ * Returns only docs that exist and are not deleted.
+ */
+export async function getDocsByIds(
+  userId: string,
+  ids: string[],
+): Promise<TidatraDoc[]> {
+  if (ids.length === 0) return [];
+  const name = userDbName(userId);
+  const res = await couchFetch(`/${name}/_all_docs?include_docs=true`, {
+    method: "POST",
+    body: JSON.stringify({ keys: ids }),
+  });
+  if (!res.ok) {
+    if (res.status === 404) return [];
+    const body = await res.text();
+    throw new Error(`CouchDB _all_docs failed: ${res.status} ${body}`);
+  }
+  const data = (await res.json()) as {
+    rows: Array<{
+      value?: { deleted?: boolean };
+      doc?: TidatraDoc & { _rev?: string };
+    }>;
+  };
+  return data.rows
+    .filter((r) => r.doc && !r.value?.deleted)
+    .map((r) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { _rev: _, ...rest } = r.doc!;
+      return rest as TidatraDoc;
+    });
+}
+
 async function fetchExistingRevs(
   name: string,
   ids: string[],

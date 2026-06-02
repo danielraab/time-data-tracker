@@ -6,6 +6,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.3] - 2026-06-02
+
+### Fixed
+
+- **Silent pull loss during sync**: `applyPulledDocs` now checks PouchDB `bulkDocs`
+  results for per-doc conflicts instead of silently dropping them while counting them
+  as pulled. When a conflict occurs (the doc changed locally between `db.get` and the
+  write), the function re-fetches the current `_rev` and retries once using last-write-wins
+  comparison. This prevents pulled changes from being lost when a local write races with
+  an incoming sync.
+
+### Added
+
+- **Maintenance page for de-duplication** (`/maintenance`): provides tooling to detect
+  and merge duplicate series and entries. Series/entries created independently on
+  multiple devices before sync existed share the same logical identity but have different
+  random `_id`s, causing edits and deletes to appear not to sync. The maintenance page
+  scans for logical duplicates, displays a dry-run plan (grouped by canonical and
+  duplicate copies), and provides a guarded merge button. Merging soft-deletes the
+  duplicate copies (recoverable from trash for 30 days), repoints all `seriesId` and
+  `startEntryId` references to the canonical doc, then runs a full sync cycle.
+- **Raw data viewer** on the maintenance page: side-by-side browsable lists of all
+  local (PouchDB) and server (CouchDB) documents with an inline compare button (`⇄`)
+  on each doc. Clicking compare fetches the same `_id` from the opposite store and
+  displays both versions together or shows "Not found" if absent. Useful for
+  diagnosing sync issues and confirming the de-duplication plan.
+- **API endpoint `/api/maintenance/docs`**: POST route to fetch specific docs from the
+  authenticated user's CouchDB database by `_id`. Used by the maintenance page's
+  raw data viewer to load server copies for comparison.
+
 ## [1.6.2] - 2026-06-02
 
 ### Fixed

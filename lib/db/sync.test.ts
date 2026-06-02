@@ -182,6 +182,73 @@ describe("applyPulledDocs", () => {
 });
 
 // ---------------------------------------------------------------------------
+// applyPulledDocs — conflict retry (uses a fake db to force a conflict result)
+// ---------------------------------------------------------------------------
+
+describe("applyPulledDocs conflict retry", () => {
+  function makeDoc(id: string, updatedAt: string): TidatraDoc {
+    return {
+      _id: id,
+      type: "series",
+      title: "x",
+      description: "",
+      tags: [],
+      ownerId: null,
+      createdAt: updatedAt,
+      updatedAt,
+    } as TidatraDoc;
+  }
+
+  it("re-fetches the rev and retries when bulkDocs reports a conflict", async () => {
+    const id = "series:conflict-1";
+    const incoming = makeDoc(id, "2026-02-01T00:00:00.000Z");
+    // Local copy is older, so LWW says the incoming doc should win on retry.
+    const localOlder = { ...makeDoc(id, "2026-01-01T00:00:00.000Z"), _rev: "9-current" };
+
+    let bulkCalls = 0;
+    const writes: TidatraDoc[][] = [];
+    const fakeDb = {
+      async get() {
+        return localOlder;
+      },
+      async bulkDocs(docs: TidatraDoc[]) {
+        bulkCalls++;
+        writes.push(docs);
+        if (bulkCalls === 1) {
+          // First write loses a race → conflict.
+          return [{ id, error: true, name: "conflict", status: 409 }];
+        }
+        return [{ ok: true, id, rev: "10-new" }];
+      },
+    } as unknown as PouchDB.Database<TidatraDoc>;
+
+    const written = await applyPulledDocs(fakeDb, [incoming]);
+
+    expect(bulkCalls).toBe(2);
+    expect(written).toBe(1);
+    // Retry must carry the freshly-fetched rev so it can succeed.
+    expect(writes[1][0]._rev).toBe("9-current");
+  });
+
+  it("does not count a doc still conflicting after the retry", async () => {
+    const id = "series:conflict-2";
+    const incoming = makeDoc(id, "2026-02-01T00:00:00.000Z");
+
+    const fakeDb = {
+      async get() {
+        return { ...makeDoc(id, "2026-01-01T00:00:00.000Z"), _rev: "1-a" };
+      },
+      async bulkDocs() {
+        return [{ id, error: true, name: "conflict", status: 409 }];
+      },
+    } as unknown as PouchDB.Database<TidatraDoc>;
+
+    const written = await applyPulledDocs(fakeDb, [incoming]);
+    expect(written).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // claimLocalSeries
 // ---------------------------------------------------------------------------
 
