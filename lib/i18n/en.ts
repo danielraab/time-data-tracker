@@ -148,6 +148,7 @@ export const t = {
     errorSendingLink: "Could not send sign-in link. Please try again.",
     settings: "Settings",
     exportImport: "Export / Import",
+    maintenance: "Maintenance",
     accountMenuLabel: "Account",
     syncFailedClear:
       "Sync failed. Clear local data anyway? Unsynced changes will be lost.",

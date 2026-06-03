@@ -31,8 +31,13 @@ export function AppFooter() {
         <span aria-hidden className="text-border">
           ·
         </span>
-        <Link href="/trash" className="hover:text-foreground">
-          {t.trash.trashLink}
+        <Link
+          href="https://danielraab.at"
+          className="hover:text-foreground"
+          target="_blank"
+          rel="noreferrer noopener"
+        >
+          danielraab.at
         </Link>
         <span aria-hidden className="text-border">
           ·

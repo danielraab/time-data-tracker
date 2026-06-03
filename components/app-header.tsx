@@ -7,8 +7,9 @@ import {
   DownloadIcon,
   LoaderIcon,
   LogOutIcon,
+  PocketKnifeIcon,
   RefreshCwIcon,
-  SettingsIcon,
+  TrashIcon,
   UserIcon,
   WifiOffIcon,
 } from "lucide-react";
@@ -98,6 +99,7 @@ export function AppHeader() {
   const { data: session } = useSession();
   const { state: syncState, trigger } = useSyncContext();
   const [clearingInProgress, setClearingInProgress] = useState(false);
+  const [maintenanceClickCnt, setMaintenanceClickCnt] = useState(0);
 
   return (
     <header className="border-b border-border bg-card">
@@ -152,10 +154,23 @@ export function AppHeader() {
                 <DropdownMenuSeparator />
 
                 <DropdownMenuGroup>
+                  <DropdownMenuItem
+                    asChild
+                    onClick={(event) => {
+                      if (maintenanceClickCnt >= 3) return;
+                      event.preventDefault();
+                      setMaintenanceClickCnt((cnt) => cnt + 1);
+                    }}
+                  >
+                    <Link href="/maintenance">
+                      <PocketKnifeIcon />
+                      {t.auth.maintenance}
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/settings">
-                      <SettingsIcon />
-                      {t.auth.settings}
+                    <Link href="/trash">
+                      <TrashIcon />
+                      {t.trash.trashLink}
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
