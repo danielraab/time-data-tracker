@@ -3,26 +3,36 @@ import type { Entry, EntryInput } from "@/lib/types";
 
 const nowIso = () => new Date().toISOString();
 
+// All entry _ids share the "entry:" prefix. Using allDocs with a key range
+// avoids the pouchdb-find mango index, which can silently miss documents whose
+// type/seriesId fields were never mutated (index not re-emitted on update).
+// allDocs uses PouchDB's built-in B-tree index and is always consistent.
+async function allEntryDocs(db: PouchDB.Database): Promise<Entry[]> {
+  const res = await db.allDocs<Entry>({
+    include_docs: true,
+    startkey: "entry:",
+    endkey: "entry:￿",
+  });
+  return res.rows.map((r) => r.doc as Entry).filter(Boolean);
+}
+
 export async function listEntries(seriesId: string): Promise<Entry[]> {
   const db = await getDb();
-  const res = await db.find({ selector: { type: "entry", seriesId } });
-  return (res.docs as Entry[])
-    .filter((e) => !e.deletedAt)
+  return (await allEntryDocs(db))
+    .filter((e) => e.seriesId === seriesId && !e.deletedAt)
     .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
 }
 
 /** Returns all entries including soft-deleted ones (used by sync). */
 export async function listAllEntries(): Promise<Entry[]> {
   const db = await getDb();
-  const res = await db.find({ selector: { type: "entry" } });
-  return res.docs as Entry[];
+  return allEntryDocs(db);
 }
 
 /** Returns all non-deleted entries across every series (used by the dashboard). */
 export async function listAllActiveEntries(): Promise<Entry[]> {
   const db = await getDb();
-  const res = await db.find({ selector: { type: "entry" } });
-  return (res.docs as Entry[]).filter((e) => !e.deletedAt);
+  return (await allEntryDocs(db)).filter((e) => !e.deletedAt);
 }
 
 export async function createEntry(input: EntryInput): Promise<Entry> {

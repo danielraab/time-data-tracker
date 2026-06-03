@@ -40,11 +40,24 @@ export async function exportData(seriesIds: string[]): Promise<ExportFile> {
   const entriesNested = await Promise.all(entriesBySeriesPromises);
   const entries = entriesNested.flat();
 
+  // Ensure span_end entries don't reference start entries that are absent from
+  // the export (e.g. soft-deleted starts). Strip dangling startEntryId values so
+  // the export file is always self-consistent.
+  const exportedIds = new Set(entries.map((e) => e._id));
+  const cleanedEntries = entries.map((e) => {
+    if (e.entryType === "span_end" && e.startEntryId && !exportedIds.has(e.startEntryId)) {
+      const { startEntryId: _, ...rest } = e;
+      void _;
+      return rest as Entry;
+    }
+    return e;
+  });
+
   return {
     version: 1,
     exportedAt: new Date().toISOString(),
     series: allSeries.map(stripRev) as Series[],
-    entries: entries.map(stripRev) as Entry[],
+    entries: cleanedEntries.map(stripRev) as Entry[],
   };
 }
 

@@ -25,7 +25,6 @@ export function getDb(): Promise<PouchDB.Database<TidatraDoc>> {
     PouchDB.plugin(find);
     const db = new PouchDB<TidatraDoc>("tidatra");
     await db.createIndex({ index: { fields: ["type"] } });
-    await db.createIndex({ index: { fields: ["type", "seriesId"] } });
     return db;
   })();
   return dbPromise;

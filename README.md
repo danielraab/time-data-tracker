@@ -70,6 +70,7 @@ A CouchDB service is included in the dev container (`.devcontainer/docker-compos
 and runs automatically on `http://localhost:5984` (user `admin`, password `password`).
 If you are not using the dev container, run your own CouchDB instance and point
 `COUCHDB_URL` at it.
+Couchdb GUI is available under: http://localhost:5984/\_utils
 
 ### 4. Run the dev server
 
@@ -168,15 +169,15 @@ docker compose up -d
 
 ### Services and volumes
 
-| Service        | Container          | Description             |
-| -------------- | ------------------ | ----------------------- |
-| `app`          | `tidatra`          | Next.js application     |
-| `couchdb`      | `tidatra-couchdb`  | CouchDB 3 sync backend  |
+| Service   | Container         | Description            |
+| --------- | ----------------- | ---------------------- |
+| `app`     | `tidatra`         | Next.js application    |
+| `couchdb` | `tidatra-couchdb` | CouchDB 3 sync backend |
 
-| Volume          | Mounted at              | Contents                            |
-| --------------- | ----------------------- | ----------------------------------- |
-| `tidatra-data`  | `/app/data`             | SQLite auth database                |
-| `couchdb-data`  | `/opt/couchdb/data`     | All CouchDB databases               |
+| Volume         | Mounted at          | Contents              |
+| -------------- | ------------------- | --------------------- |
+| `tidatra-data` | `/app/data`         | SQLite auth database  |
+| `couchdb-data` | `/opt/couchdb/data` | All CouchDB databases |
 
 ## Project status
 
