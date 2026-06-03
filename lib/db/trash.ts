@@ -1,4 +1,5 @@
 import { getDb } from "./pouch";
+import { listAllEntries } from "./entries-repo";
 import type { Entry, Series } from "@/lib/types";
 
 export const PURGE_RETENTION_DAYS = 30;
@@ -53,9 +54,7 @@ export async function listDeletedSeries(): Promise<Series[]> {
 
 /** Returns all soft-deleted entries, newest-deletion-first. */
 export async function listDeletedEntries(): Promise<Entry[]> {
-  const db = await getDb();
-  const res = await db.find({ selector: { type: "entry" } });
-  return (res.docs as Entry[])
+  return (await listAllEntries())
     .filter((e) => !!e.deletedAt)
     .sort((a, b) => b.deletedAt!.localeCompare(a.deletedAt!));
 }

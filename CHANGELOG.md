@@ -6,6 +6,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Entries missing from series view and export due to stale pouchdb-find index**: entries
+  that existed in the local PouchDB (confirmed by the maintenance data comparison) could
+  silently disappear from the series overview and export. Root cause: the `pouchdb-find`
+  mango query index (`["type", "seriesId"]`) can fail to re-emit a document after an
+  update when neither indexed field changed, leaving the index out of sync with the
+  underlying store. `db.allDocs()` (used by the maintenance page) was unaffected.
+  Fixed by replacing all entry queries with a key-range `allDocs` scan over the
+  `"entry:"` ID prefix, which uses PouchDB's built-in B-tree and is always consistent.
+  Affected queries: `listEntries`, `listAllEntries`, `listAllActiveEntries`,
+  `listDeletedEntries`, `deleteSeries`, and `purgeSeries`. The now-unused
+  `["type", "seriesId"]` mango index has been removed.
+- **Export with dangling span_end reference**: if a `span_end`'s `startEntryId` points
+  to an entry absent from the export (e.g. because the start was hard-purged), the
+  export file would contain an unresolvable reference. The export now strips such
+  dangling `startEntryId` values, producing a self-consistent file.
+
 ## [1.7.3] - 2026-06-03
 
 ### Changed

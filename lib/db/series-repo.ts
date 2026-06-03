@@ -1,5 +1,6 @@
 import { getDb } from "./pouch";
 import { isOwner } from "./trash";
+import { listAllEntries } from "./entries-repo";
 import type { Series, SeriesInput } from "@/lib/types";
 
 const nowIso = () => new Date().toISOString();
@@ -179,9 +180,9 @@ export async function purgeSeries(
   if (!isOwner(series.ownerId, currentUserId)) {
     throw new Error("Not authorized to purge this series");
   }
-  const entries = await db.find({ selector: { type: "entry", seriesId: id } });
+  const entries = (await listAllEntries()).filter((e) => e.seriesId === id);
   await Promise.all([
-    ...entries.docs.map((doc) => db.remove(doc._id, doc._rev!)),
+    ...entries.map((doc) => db.remove(doc._id, doc._rev!)),
     db.remove(series._id, series._rev!),
   ]);
 }
@@ -192,10 +193,10 @@ export async function deleteSeries(id: string): Promise<void> {
   const db = await getDb();
   const series = (await db.get(id)) as Series;
   const wasDefault = !!series.isDefault;
-  const entries = await db.find({ selector: { type: "entry", seriesId: id } });
+  const entries = (await listAllEntries()).filter((e) => e.seriesId === id);
   const now = nowIso();
   await db.bulkDocs([
-    ...entries.docs.map((doc) => ({ ...doc, deletedAt: now, updatedAt: now })),
+    ...entries.map((doc) => ({ ...doc, deletedAt: now, updatedAt: now })),
     { ...series, deletedAt: now, updatedAt: now },
   ]);
   if (wasDefault) {
