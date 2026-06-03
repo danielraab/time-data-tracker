@@ -46,7 +46,12 @@ function getComparisonStatus(
   server: TidatraDoc | null,
 ): ComparisonStatus {
   if (local && server) {
-    if (local.updatedAt !== server.updatedAt) return "diff";
+    if (
+      local.updatedAt !== server.updatedAt ||
+      local.deletedAt !== server.deletedAt
+    ) {
+      return "diff";
+    }
 
     //entry
     if ("timestamp" in local && "timestamp" in server) {
@@ -181,107 +186,113 @@ function ComparisonDocRow({
 
       {/* Side-by-side comparison */}
       {showSideBySide && (
-        <div className="border-t grid grid-cols-2 divide-x">
-          {/* Local side */}
-          <div>
-            <div className="bg-muted/30 px-3 py-1 text-xs font-semibold text-muted-foreground">
-              Local
+        <>
+          <div className="border-t grid grid-cols-2 divide-x">
+            {/* Local side */}
+            <div>
+              <div className="bg-muted/30 px-3 py-1 text-xs font-semibold text-muted-foreground">
+                Local
+              </div>
+              {local ? (
+                <pre className="overflow-x-auto bg-muted/40 px-3 py-2 font-mono text-xs leading-relaxed">
+                  {JSON.stringify(local, null, 2)}
+                </pre>
+              ) : (
+                <p className="px-3 py-2 text-muted-foreground italic">
+                  Not in local DB
+                </p>
+              )}
             </div>
-            {local ? (
-              <pre className="overflow-x-auto bg-muted/40 px-3 py-2 font-mono text-xs leading-relaxed">
-                {JSON.stringify(local, null, 2)}
-              </pre>
-            ) : (
-              <p className="px-3 py-2 text-muted-foreground italic">
-                Not in local DB
-              </p>
-            )}
-          </div>
 
-          {/* Server side */}
-          <div>
-            <div className="bg-muted/30 px-3 py-1 text-xs font-semibold text-muted-foreground">
-              Server
-            </div>
-            {server ? (
-              <pre className="overflow-x-auto bg-muted/40 px-3 py-2 font-mono text-xs leading-relaxed">
-                {JSON.stringify(server, null, 2)}
-              </pre>
-            ) : (
-              <p className="px-3 py-2 text-muted-foreground italic">
-                Not on server
-              </p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Force sync buttons (only for diffs) */}
-      {status === "diff" && (
-        <div className="border-t bg-muted/20 px-3 py-2 space-y-2">
-          <div className="flex flex-col gap-2 text-xs">
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                className="flex-1"
-                onClick={handleForceToLocal}
-                disabled={
-                  forceLocalState === "busy" || forceServerState === "busy"
-                }
-              >
-                {forceLocalState === "busy" ? (
-                  <Loader2 className="size-3 animate-spin" />
-                ) : null}
-                <span className="text-xs">
-                  {forceLocalState === "busy"
-                    ? "Forcing…"
-                    : t.maintenance.forceToLocal}
-                </span>
-              </Button>
-              {forceLocalState === "done" && (
-                <span className="text-green-600 dark:text-green-500 flex items-center text-xs">
-                  Done
-                </span>
-              )}
-              {forceLocalState === "error" && (
-                <span className="text-destructive flex items-center text-xs">
-                  Error
-                </span>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                className="flex-1"
-                onClick={handleForceToServer}
-                disabled={
-                  forceLocalState === "busy" || forceServerState === "busy"
-                }
-              >
-                {forceServerState === "busy" ? (
-                  <Loader2 className="size-3 animate-spin" />
-                ) : null}
-                <span className="text-xs">
-                  {forceServerState === "busy"
-                    ? "Forcing…"
-                    : t.maintenance.forceToServer}
-                </span>
-              </Button>
-              {forceServerState === "done" && (
-                <span className="text-green-600 dark:text-green-500 flex items-center text-xs">
-                  Done
-                </span>
-              )}
-              {forceServerState === "error" && (
-                <span className="text-destructive flex items-center text-xs">
-                  Error
-                </span>
+            {/* Server side */}
+            <div>
+              <div className="bg-muted/30 px-3 py-1 text-xs font-semibold text-muted-foreground">
+                Server
+              </div>
+              {server ? (
+                <pre className="overflow-x-auto bg-muted/40 px-3 py-2 font-mono text-xs leading-relaxed">
+                  {JSON.stringify(server, null, 2)}
+                </pre>
+              ) : (
+                <p className="px-3 py-2 text-muted-foreground italic">
+                  Not on server
+                </p>
               )}
             </div>
           </div>
-        </div>
+          {status !== "in-sync" && (
+            <div className="border-t bg-muted/20 px-3 py-2 space-y-2">
+              <div className="flex flex-col gap-2 text-xs">
+                {(status === "diff" || status === "server-only") && (
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={handleForceToLocal}
+                      disabled={
+                        forceLocalState === "busy" ||
+                        forceServerState === "busy"
+                      }
+                    >
+                      {forceLocalState === "busy" ? (
+                        <Loader2 className="size-3 animate-spin" />
+                      ) : null}
+                      <span className="text-xs">
+                        {forceLocalState === "busy"
+                          ? "Forcing…"
+                          : t.maintenance.forceToLocal}
+                      </span>
+                    </Button>
+                    {forceLocalState === "done" && (
+                      <span className="text-green-600 dark:text-green-500 flex items-center text-xs">
+                        Done
+                      </span>
+                    )}
+                    {forceLocalState === "error" && (
+                      <span className="text-destructive flex items-center text-xs">
+                        Error
+                      </span>
+                    )}
+                  </div>
+                )}
+                {(status === "diff" || status === "local-only") && (
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={handleForceToServer}
+                      disabled={
+                        forceLocalState === "busy" ||
+                        forceServerState === "busy"
+                      }
+                    >
+                      {forceServerState === "busy" ? (
+                        <Loader2 className="size-3 animate-spin" />
+                      ) : null}
+                      <span className="text-xs">
+                        {forceServerState === "busy"
+                          ? "Forcing…"
+                          : t.maintenance.forceToServer}
+                      </span>
+                    </Button>
+                    {forceServerState === "done" && (
+                      <span className="text-green-600 dark:text-green-500 flex items-center text-xs">
+                        Done
+                      </span>
+                    )}
+                    {forceServerState === "error" && (
+                      <span className="text-destructive flex items-center text-xs">
+                        Error
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </li>
   );
