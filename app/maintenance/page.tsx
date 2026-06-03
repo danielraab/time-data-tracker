@@ -529,6 +529,127 @@ function ComparisonCard() {
 }
 
 // ---------------------------------------------------------------------------
+// End-link group row (individual fix)
+// ---------------------------------------------------------------------------
+
+interface EndLinkGroupRowProps {
+  group: DuplicateEndLinkGroup;
+  onFixed: () => void;
+}
+
+function EndLinkGroupRow({ group, onFixed }: EndLinkGroupRowProps) {
+  const allEnds = group.ends;
+  const [keepId, setKeepId] = useState(group.keepEnd._id);
+  const [fixStatus, setFixStatus] = useState<
+    "idle" | "busy" | "done" | "error"
+  >("idle");
+
+  async function fix() {
+    setFixStatus("busy");
+    try {
+      const keepEnd = allEnds.find((e) => e._id === keepId)!;
+      const unlinkEnds = allEnds.filter((e) => e._id !== keepId);
+      await repairDuplicateEndLinks([
+        { ...group, keepEnd, unlinkEnds },
+      ]);
+      setFixStatus("done");
+      setTimeout(onFixed, 800);
+    } catch {
+      setFixStatus("error");
+    }
+  }
+
+  return (
+    <li className="rounded border px-3 py-2 space-y-2 text-sm">
+      {/* Start entry */}
+      <div>
+        <div className="font-medium">
+          {t.maintenance.endLinkStartLabel}:{" "}
+          {group.start.label || t.entries.types.span_start} ·{" "}
+          {formatDateTime(group.start.timestamp)}
+        </div>
+        <div className="font-mono text-xs text-muted-foreground">
+          {group.start._id}
+        </div>
+      </div>
+
+      {/* End entries — user picks which one to keep */}
+      <div className="space-y-1">
+        <div className="text-xs font-medium text-muted-foreground">
+          {t.maintenance.endLinkChooseKeep}
+        </div>
+        {allEnds.map((e) => {
+          const isKeep = e._id === keepId;
+          return (
+            <label
+              key={e._id}
+              className={`flex cursor-pointer items-start gap-2 rounded border px-2 py-1.5 text-xs transition-colors ${
+                isKeep
+                  ? "border-primary bg-primary/5"
+                  : "border-transparent hover:bg-muted/50"
+              }`}
+            >
+              <input
+                type="radio"
+                name={`keep-${group.start._id}`}
+                value={e._id}
+                checked={isKeep}
+                onChange={() => setKeepId(e._id)}
+                className="mt-0.5 shrink-0"
+                disabled={fixStatus === "busy"}
+              />
+              <div className="min-w-0">
+                <div className={isKeep ? "font-medium" : ""}>
+                  {e.label || t.entries.types.span_end} ·{" "}
+                  {formatDateTime(e.timestamp)}
+                </div>
+                <div className="font-mono text-muted-foreground break-all">
+                  {e._id}
+                </div>
+              </div>
+              {isKeep && (
+                <span className="ml-auto shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">
+                  keep
+                </span>
+              )}
+            </label>
+          );
+        })}
+      </div>
+
+      <div className="flex items-center gap-2 pt-0.5">
+        {fixStatus === "done" ? (
+          <span className="text-xs font-medium text-green-600 dark:text-green-500">
+            {t.maintenance.fixEndLinkSuccess}
+          </span>
+        ) : (
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={fix}
+            disabled={fixStatus === "busy"}
+          >
+            {fixStatus === "busy" ? (
+              <Loader2 className="size-3 animate-spin" />
+            ) : null}
+            <span className="text-xs">
+              {fixStatus === "busy"
+                ? t.maintenance.fixingEndLinks
+                : t.maintenance.fixEndLink}
+            </span>
+          </Button>
+        )}
+        {fixStatus === "error" && (
+          <span className="text-xs text-destructive">
+            {t.maintenance.error}
+          </span>
+        )}
+      </div>
+    </li>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Dedupe + end-link card
 // ---------------------------------------------------------------------------
 
@@ -547,21 +668,13 @@ function DedupeCard() {
   >("idle");
   const [mergedCount, setMergedCount] = useState(0);
 
-  // End-link repair state
-  const [fixStatus, setFixStatus] = useState<
-    "idle" | "busy" | "done" | "error"
-  >("idle");
-  const [fixedCount, setFixedCount] = useState(0);
-
   const { trigger: syncNow } = useSyncContext();
 
-  const busy =
-    scanStatus === "scanning" || mergeStatus === "busy" || fixStatus === "busy";
+  const busy = scanStatus === "scanning" || mergeStatus === "busy";
 
   async function scan() {
     setScanStatus("scanning");
     setMergeStatus("idle");
-    setFixStatus("idle");
     try {
       const result = await dryRunDedupe();
       setPlan(result.plan);
@@ -583,24 +696,6 @@ function DedupeCard() {
       syncNow();
     } catch {
       setMergeStatus("error");
-    }
-  }
-
-  async function fixEndLinks() {
-    if (
-      !window.confirm(
-        "Unlink extra end entries? They will appear as orphan ends and can be re-linked manually.",
-      )
-    )
-      return;
-    setFixStatus("busy");
-    try {
-      const written = await repairDuplicateEndLinks(endLinkGroups);
-      setFixedCount(written);
-      setFixStatus("done");
-      syncNow();
-    } catch {
-      setFixStatus("error");
     }
   }
 
@@ -740,71 +835,20 @@ function DedupeCard() {
                   <p className="text-sm">
                     {t.maintenance.endLinkFound(endLinkGroups.length)}
                   </p>
-                  <ul className="space-y-2 text-sm">
+                  <ul className="space-y-2">
                     {endLinkGroups.map((g) => (
-                      <li
+                      <EndLinkGroupRow
                         key={g.start._id}
-                        className="rounded border px-3 py-2 space-y-1.5"
-                      >
-                        <div className="font-medium">
-                          {t.maintenance.endLinkStartLabel}:{" "}
-                          {g.start.label || t.entries.types.span_start} ·{" "}
-                          {formatDateTime(g.start.timestamp)}
-                        </div>
-                        <div className="font-mono text-xs text-muted-foreground">
-                          {g.start._id}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {t.maintenance.endLinkKeep(
-                            g.keepEnd.label ?? "",
-                            formatDateTime(g.keepEnd.timestamp),
-                          )}
-                        </div>
-                        <div className="font-mono text-xs text-muted-foreground">
-                          {g.keepEnd._id}
-                        </div>
-                        {g.unlinkEnds.length > 0 && (
-                          <div className="space-y-1">
-                            <div className="text-xs text-amber-600 dark:text-amber-400">
-                              {t.maintenance.endLinkUnlink(g.unlinkEnds.length)}
-                            </div>
-                            {g.unlinkEnds.map((e) => (
-                              <div
-                                key={e._id}
-                                className="font-mono text-xs text-amber-600 dark:text-amber-400"
-                              >
-                                {e._id}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </li>
+                        group={g}
+                        onFixed={() => {
+                          setEndLinkGroups((prev) =>
+                            prev.filter((x) => x.start._id !== g.start._id),
+                          );
+                          syncNow();
+                        }}
+                      />
                     ))}
                   </ul>
-
-                  {fixStatus === "done" ? (
-                    <p className="text-sm font-medium text-green-600 dark:text-green-500">
-                      {t.maintenance.fixEndLinksSuccess(fixedCount)}
-                    </p>
-                  ) : (
-                    <Button
-                      variant="destructive"
-                      onClick={fixEndLinks}
-                      disabled={busy}
-                    >
-                      {fixStatus === "busy" ? (
-                        <Loader2 className="size-4 animate-spin" />
-                      ) : null}
-                      {fixStatus === "busy"
-                        ? t.maintenance.fixingEndLinks
-                        : t.maintenance.fixEndLinks}
-                    </Button>
-                  )}
-                  {fixStatus === "error" && (
-                    <p className="text-sm text-destructive">
-                      {t.maintenance.error}
-                    </p>
-                  )}
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">

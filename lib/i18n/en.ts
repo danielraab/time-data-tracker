@@ -224,6 +224,9 @@ export const t = {
     fixingEndLinks: "Fixing…",
     fixEndLinksSuccess: (n: number) =>
       `Fixed. ${n} end${n === 1 ? "" : "s"} unlinked.`,
+    endLinkChooseKeep: "Choose which end to keep linked:",
+    fixEndLink: "Fix this",
+    fixEndLinkSuccess: "Fixed.",
     error: "Something went wrong. Nothing was changed.",
     forceToLocal: "Force to local",
     forceToServer: "Force to server",

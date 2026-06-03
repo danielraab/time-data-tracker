@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.4] - 2026-06-03
+
+### Changed
+
+- **Duplicate duration links — per-group fix with keep selection**: the "Duplicate
+  duration links" section on the maintenance page now shows each conflicting group
+  individually instead of offering a single "Fix all" button. For each group, all
+  candidate end entries are listed with a radio selector so you can choose which one
+  to keep linked to the start. A "Fix this" button then unlinks only the extra ends
+  for that group, leaving the rest untouched.
+
 ### Fixed
 
 - **Entries missing from series view and export due to stale pouchdb-find index**: entries
