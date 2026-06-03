@@ -1,6 +1,6 @@
 {
   "name": "time-data-tracker",
-  "version": "1.7.3",
+  "version": "1.7.4",
   "private": true,
   "packageManager": "pnpm@11.2.2",
   "scripts": {
