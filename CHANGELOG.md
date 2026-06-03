@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.3] - 2026-06-03
+
+### Changed
+
+- **Maintenance page data viewer**: show buttons in accourdion. And show force button not
+  not only on diff.
+
 ## [1.7.2] - 2026-06-03
 
 ### Added
