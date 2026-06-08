@@ -27,6 +27,7 @@ import { formatDateTime } from "@/lib/format";
 import { t } from "@/lib/i18n/en";
 import { forceDocToLocal, forceDocToServer } from "@/lib/db/sync";
 import type { TidatraDoc } from "@/lib/types";
+import { PwaHealthPanel } from "@/components/pwa/pwa-health-panel";
 
 // ---------------------------------------------------------------------------
 // Comparison doc row (both sides loaded)
@@ -883,6 +884,8 @@ export default function MaintenancePage() {
       <DedupeCard />
 
       <ComparisonCard />
+
+      <PwaHealthPanel />
     </main>
   );
 }

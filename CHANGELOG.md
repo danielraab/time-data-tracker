@@ -6,6 +6,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **PWA Health Panel on maintenance page**: a new diagnostic card at the bottom of the
+  maintenance page surfaces the live status of all PWA capabilities in one place:
+  - **Service Worker** — shows current state (none / installing / waiting / active),
+    displays the active cache key, and provides buttons to register, force-refresh, and
+    unregister the service worker.
+  - **Notifications** — shows the current permission state (default / granted / denied)
+    with a button to request permission and send a test notification.
+  - **Geolocation** — shows permission state and lets you trigger a live position lookup
+    to verify GPS access is working.
+  - **Periodic Background Sync** — shows whether the API is supported and the current
+    permission state, with a button to register the sync tag used by the app.
+  - **Online / Offline** — shows the current `navigator.onLine` state and the time of
+    the last detected change, updating in real time.
+  - **Install Prompt** — shows whether a pending `beforeinstallprompt` event is held and
+    provides a button to trigger the native install prompt.
+
 ## [1.7.4] - 2026-06-03
 
 ### Changed
