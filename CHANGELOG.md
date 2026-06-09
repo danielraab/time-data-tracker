@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.1] - 2026-06-09
+
+### Fixed
+
+- **Analytics snippet injection**: app is now always dynamicly rendered, therfore the
+  snipping should work. Downside: no staticly renderd pages anymore, everything is rendered
+  at when requested.
+
 ## [1.8.0] - 2026-06-09
 
 ### Added
