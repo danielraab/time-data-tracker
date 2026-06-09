@@ -42,12 +42,23 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headSnippet = process.env.ANALYTICS_HEAD_SNIPPET || "";
+  const bodySnippet = process.env.ANALYTICS_BODY_SNIPPET || "";
+
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      {headSnippet && (
+        <head>
+          <div dangerouslySetInnerHTML={{ __html: headSnippet }} />
+        </head>
+      )}
       <body className="min-h-full flex flex-col font-sans">
+        {bodySnippet && (
+          <div dangerouslySetInnerHTML={{ __html: bodySnippet }} />
+        )}
         <SyncProvider>
           <AppHeader />
           <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6">

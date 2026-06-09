@@ -6,7 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-06-09
+
 ### Added
+
+- **Analytics snippet injection**: operators can now inject arbitrary HTML into `<head>`
+  and/or immediately after `<body>` opens by setting two optional environment variables —
+  `ANALYTICS_HEAD_SNIPPET` and `ANALYTICS_BODY_SNIPPET`. Supports any tracker that ships a
+  head snippet (Umami, Plausible, Matomo, PostHog) as well as GTM's two-part injection.
+  Variables are server-side only (no `NEXT_PUBLIC_` prefix), so no image rebuild is needed
+  — update `.env` and restart the container. Both default to empty; the app is unaffected
+  when neither is set.
 
 - **PWA Health Panel on maintenance page**: a new diagnostic card at the bottom of the
   maintenance page surfaces the live status of all PWA capabilities in one place:

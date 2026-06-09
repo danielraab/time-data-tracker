@@ -34,6 +34,9 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
       SMTP_FROM: ${SMTP_FROM:-}
+      # Analytics snippets — leave blank to disable
+      ANALYTICS_HEAD_SNIPPET: ${ANALYTICS_HEAD_SNIPPET:-}
+      ANALYTICS_BODY_SNIPPET: ${ANALYTICS_BODY_SNIPPET:-}
       # OAuth providers — leave blank to disable
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}

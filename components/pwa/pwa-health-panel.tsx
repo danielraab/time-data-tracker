@@ -140,20 +140,56 @@ function ServiceWorkerSection() {
 
 type NotifPermission = "unsupported" | "default" | "granted" | "denied";
 
+const NOTIF_BADGE_VARIANT: Record<NotifPermission, BadgeVariant> = {
+  granted: "ok",
+  denied: "error",
+  unsupported: "warn",
+  default: "neutral",
+};
+
+// `Notification.permission` is a synchronous, browser-only value that changes
+// when the user answers a permission prompt or edits browser settings. Modelling
+// it as an external store keeps it SSR-safe (no `window` on the server) and
+// hydration-stable, and lets the panel reflect changes in real time — without a
+// synchronous setState inside an effect.
+const notifPermissionListeners = new Set<() => void>();
+
+function subscribeNotifPermission(onChange: () => void) {
+  notifPermissionListeners.add(onChange);
+  let status: PermissionStatus | undefined;
+  navigator.permissions
+    ?.query({ name: "notifications" as PermissionName })
+    .then((s) => {
+      status = s;
+      s.addEventListener("change", onChange);
+    })
+    .catch(() => {});
+  return () => {
+    notifPermissionListeners.delete(onChange);
+    status?.removeEventListener("change", onChange);
+  };
+}
+
+function emitNotifPermissionChange() {
+  for (const onChange of notifPermissionListeners) onChange();
+}
+
+function getNotifPermission(): NotifPermission {
+  return "Notification" in window
+    ? (Notification.permission as NotifPermission)
+    : "unsupported";
+}
+
 function NotificationsSection() {
-  const [permission, setPermission] = useState<NotifPermission>("unsupported");
+  const permission = useSyncExternalStore<NotifPermission>(
+    subscribeNotifPermission,
+    getNotifPermission,
+    () => "unsupported",
+  );
   const [sent, setSent] = useState(false);
 
-  useEffect(() => {
-    if ("Notification" in window) {
-      setPermission(Notification.permission as NotifPermission);
-    }
-  }, []);
-
   function handleRequestPermission() {
-    Notification.requestPermission().then((result) => {
-      setPermission(result as NotifPermission);
-    });
+    Notification.requestPermission().then(emitNotifPermissionChange);
   }
 
   function handleSendTest() {
@@ -164,14 +200,7 @@ function NotificationsSection() {
     setTimeout(() => setSent(false), 2000);
   }
 
-  const badgeVariant: BadgeVariant =
-    permission === "granted"
-      ? "ok"
-      : permission === "denied"
-        ? "error"
-        : permission === "unsupported"
-          ? "warn"
-          : "neutral";
+  const badgeVariant = NOTIF_BADGE_VARIANT[permission];
 
   return (
     <section className="space-y-2">
@@ -215,6 +244,18 @@ interface GpsResult {
 
 type GpsError = "denied" | "timeout" | "unknown";
 
+const GPS_PERM_BADGE_VARIANT: Record<PermissionState, BadgeVariant> = {
+  granted: "ok",
+  denied: "error",
+  prompt: "neutral",
+};
+
+const GPS_ERROR_MESSAGE: Record<GpsError, string> = {
+  denied: t.pwaTest.gps.errorDenied,
+  timeout: t.pwaTest.gps.errorTimeout,
+  unknown: t.pwaTest.gps.errorUnknown,
+};
+
 const noopSubscribe = () => () => {};
 
 function GeolocationSection() {
@@ -230,10 +271,19 @@ function GeolocationSection() {
 
   useEffect(() => {
     if (!supported) return;
+    let status: PermissionStatus | undefined;
+    const handleChange = () => {
+      if (status) setPermState(status.state);
+    };
     navigator.permissions
       .query({ name: "geolocation" })
-      .then((s) => setPermState(s.state))
+      .then((s) => {
+        status = s;
+        setPermState(s.state);
+        s.addEventListener("change", handleChange);
+      })
       .catch(() => {});
+    return () => status?.removeEventListener("change", handleChange);
   }, [supported]);
 
   function handleGetLocation() {
@@ -280,12 +330,9 @@ function GeolocationSection() {
     );
   }
 
-  const permBadgeVariant: BadgeVariant =
-    permState === "granted"
-      ? "ok"
-      : permState === "denied"
-        ? "error"
-        : "neutral";
+  const permBadgeVariant: BadgeVariant = permState
+    ? GPS_PERM_BADGE_VARIANT[permState]
+    : "neutral";
 
   return (
     <section className="space-y-2">
@@ -317,13 +364,7 @@ function GeolocationSection() {
         </>
       )}
       {error && (
-        <p className="text-xs text-destructive">
-          {error === "denied"
-            ? t.pwaTest.gps.errorDenied
-            : error === "timeout"
-              ? t.pwaTest.gps.errorTimeout
-              : t.pwaTest.gps.errorUnknown}
-        </p>
+        <p className="text-xs text-destructive">{GPS_ERROR_MESSAGE[error]}</p>
       )}
       <Button
         size="sm"
