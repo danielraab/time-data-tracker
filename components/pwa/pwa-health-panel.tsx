@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { t } from "@/lib/i18n/en";
@@ -56,12 +56,7 @@ function Row({
 type SwState = "unsupported" | "none" | "installing" | "waiting" | "active";
 
 function ServiceWorkerSection() {
-  const [swState, setSwState] = useState<SwState>(
-    () =>
-      typeof navigator !== "undefined" && "serviceWorker" in navigator
-        ? "none"
-        : "unsupported",
-  );
+  const [swState, setSwState] = useState<SwState>("unsupported");
   const [cacheKey, setCacheKey] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -146,13 +141,14 @@ function ServiceWorkerSection() {
 type NotifPermission = "unsupported" | "default" | "granted" | "denied";
 
 function NotificationsSection() {
-  const [permission, setPermission] = useState<NotifPermission>(() => {
-    if (typeof window === "undefined" || !("Notification" in window)) {
-      return "unsupported";
-    }
-    return Notification.permission as NotifPermission;
-  });
+  const [permission, setPermission] = useState<NotifPermission>("unsupported");
   const [sent, setSent] = useState(false);
+
+  useEffect(() => {
+    if ("Notification" in window) {
+      setPermission(Notification.permission as NotifPermission);
+    }
+  }, []);
 
   function handleRequestPermission() {
     Notification.requestPermission().then((result) => {
@@ -219,13 +215,18 @@ interface GpsResult {
 
 type GpsError = "denied" | "timeout" | "unknown";
 
+const noopSubscribe = () => () => {};
+
 function GeolocationSection() {
+  const supported = useSyncExternalStore(
+    noopSubscribe,
+    () => "geolocation" in navigator,
+    () => false,
+  );
   const [permState, setPermState] = useState<PermissionState | null>(null);
   const [result, setResult] = useState<GpsResult | null>(null);
   const [error, setError] = useState<GpsError | null>(null);
   const [busy, setBusy] = useState(false);
-  const supported =
-    typeof navigator !== "undefined" && "geolocation" in navigator;
 
   useEffect(() => {
     if (!supported) return;
@@ -436,21 +437,21 @@ function PeriodicSyncSection() {
 // Online/Offline subsection
 // ---------------------------------------------------------------------------
 
-function OnlineSection() {
-  const [online, setOnline] = useState(
-    typeof navigator !== "undefined" ? navigator.onLine : true,
-  );
+function subscribeToOnlineStatus(cb: () => void) {
+  window.addEventListener("online", cb);
+  window.addEventListener("offline", cb);
+  return () => {
+    window.removeEventListener("online", cb);
+    window.removeEventListener("offline", cb);
+  };
+}
 
-  useEffect(() => {
-    const handleOnline = () => setOnline(true);
-    const handleOffline = () => setOnline(false);
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, []);
+function OnlineSection() {
+  const online = useSyncExternalStore(
+    subscribeToOnlineStatus,
+    () => navigator.onLine,
+    () => true,
+  );
 
   return (
     <section className="space-y-2">
