@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.1] - 2026-07-01
+
+### Fixed
+
+- **Context menu on long-press buttons inside series cards**: native context menu
+  (e.g. browser link sheet on mobile) no longer appears when long-pressing the quick-add
+  action buttons inside series list cards. The fix also adds `pointercancel` handling so
+  the long-press timer is properly cancelled if the browser takes over the touch gesture.
+
 ## [1.9.0] - 2026-07-01
 
 ### Added

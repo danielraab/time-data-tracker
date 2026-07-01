@@ -49,10 +49,10 @@ export function useLongPress(
       onPointerDown: start,
       onPointerUp: cancel,
       onPointerLeave: cancel,
+      onPointerCancel: cancel,
       onContextMenu: (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
-        if (isLongPress.current) {
-          e.preventDefault();
-        }
+        e.preventDefault();
+        e.stopPropagation();
       },
     },
   };
