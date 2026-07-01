@@ -323,6 +323,7 @@ export const t = {
     clickHint: "Tap a time to add an entry there.",
     dragHint: "Tap to add an entry · drag to create a duration.",
     now: "now",
+    openEnd: "open",
     prevDay: "Previous day",
     nextDay: "Next day",
     today: "Today",

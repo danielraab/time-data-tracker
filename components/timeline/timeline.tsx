@@ -128,14 +128,27 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
 
     /** Spans that overlap the current day, clipped to its bounds. */
     const visibleSpans = useMemo(() => {
-      // When `now` isn't available yet (pre-mount), use end-of-day so that
-      // open spans still render without reading the impure clock during render.
-      const openEndMs = now ?? dayEndMs;
+      // When `now` isn't available yet (pre-mount), fall back to end-of-day so
+      // that open spans still render without reading the impure clock.
+      const nowMs = now ?? dayEndMs;
       return pairs
         .map(({ start, end }) => {
           const startMs = new Date(start.timestamp).getTime();
-          const endMs = end ? new Date(end.timestamp).getTime() : openEndMs;
-          const open = end === null;
+          let endMs: number;
+          let open = false;
+          let future = false;
+          if (end) {
+            endMs = new Date(end.timestamp).getTime();
+          } else {
+            open = true;
+            if (startMs > nowMs) {
+              // Start is in the future — extend to end-of-day so it's visible.
+              endMs = dayEndMs;
+              future = true;
+            } else {
+              endMs = nowMs;
+            }
+          }
           const clippedStart = Math.max(startMs, dayStartMs);
           const clippedEnd = Math.min(endMs, dayEndMs);
           if (clippedEnd < dayStartMs || clippedStart > dayEndMs) return null;
@@ -144,6 +157,7 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
             id: start._id,
             label: start.label,
             open,
+            future,
             clippedStart,
             clippedEnd,
             continuesBefore: startMs < dayStartMs,
@@ -448,22 +462,29 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
                 const height = Math.max(4, yPos(s.clippedEnd) - top);
                 const startIso = new Date(s.clippedStart).toISOString();
                 const endIso = new Date(s.clippedEnd).toISOString();
+                const openEndLabel = s.future
+                  ? t.timeline.openEnd
+                  : t.timeline.now;
                 return (
                   <div
                     key={s.id}
                     title={
                       s.label ??
-                      `${formatTime(startIso)} – ${s.open ? t.timeline.now : formatTime(endIso)}`
+                      `${formatTime(startIso)} – ${s.open ? openEndLabel : formatTime(endIso)}`
                     }
                     className={cn(
                       "pointer-events-none absolute left-2 right-8 flex flex-col overflow-hidden rounded-md border px-2 py-1 leading-tight transition-all duration-200",
-                      s.open
+                      s.open && s.future
                         ? s.id === highlightedId
-                          ? "border-amber-500 bg-amber-400/60 text-amber-900 ring-2 ring-amber-500 dark:text-amber-100"
-                          : "border-amber-500/70 bg-amber-400/30 text-amber-900 dark:text-amber-100"
-                        : s.id === highlightedId
-                          ? "border-primary bg-primary/50 text-foreground ring-2 ring-primary"
-                          : "border-primary/50 bg-primary/20 text-foreground",
+                          ? "border-dashed border-amber-500 bg-amber-400/25 text-amber-900 ring-2 ring-amber-500 dark:text-amber-100"
+                          : "border-dashed border-amber-500/60 bg-amber-400/10 text-amber-900/80 dark:text-amber-100/70"
+                        : s.open
+                          ? s.id === highlightedId
+                            ? "border-amber-500 bg-amber-400/60 text-amber-900 ring-2 ring-amber-500 dark:text-amber-100"
+                            : "border-amber-500/70 bg-amber-400/30 text-amber-900 dark:text-amber-100"
+                          : s.id === highlightedId
+                            ? "border-primary bg-primary/50 text-foreground ring-2 ring-primary"
+                            : "border-primary/50 bg-primary/20 text-foreground",
                       s.continuesBefore && "rounded-t-none border-t-0",
                       s.continuesAfter && "rounded-b-none border-b-0",
                     )}
@@ -481,7 +502,7 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
                             {s.continuesAfter
                               ? "…"
                               : s.open
-                                ? t.timeline.now
+                                ? openEndLabel
                                 : formatTime(endIso)}
                           </div>
                         )}
@@ -493,7 +514,7 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
                         {s.continuesAfter
                           ? "…"
                           : s.open
-                            ? t.timeline.now
+                            ? openEndLabel
                             : formatTime(endIso)}
                       </div>
                     )}
