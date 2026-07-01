@@ -6,6 +6,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-07-01
+
+### Added
+
+- **Entry navigation in timeline**: clicking an entry row in the list now jumps to the
+  corresponding day in the timeline and briefly highlights the matching span, point, or
+  orphan marker for ~1.5 s, making it easy to locate any entry visually.
+
+- **Future-span indication in timeline**: open durations that extend past the current
+  moment are now visually flagged in the timeline, and labels are improved throughout.
+
+### Fixed
+
+- **Add-point failed on wrong timeline click target**: tapping a non-interactive area of
+  the timeline no longer silently dropped the add-point action.
+
+- **Context menu on long-press buttons**: native context menus are suppressed on
+  long-press/right-click for touch-friendly action buttons.
+
 ## [1.8.1] - 2026-06-09
 
 ### Fixed
