@@ -21,14 +21,17 @@ import {
 } from "@/lib/format";
 import { useSyncContext } from "@/lib/db/sync-context";
 import { t } from "@/lib/i18n/en";
+import { cn } from "@/lib/utils";
 import type { Entry } from "@/lib/types";
 
 export function PointItem({
   entry,
   readOnly = false,
+  onEntryFocusAction,
 }: {
   entry: Entry;
   readOnly?: boolean;
+  onEntryFocusAction?: (isoTimestamp: string, entryId: string) => void;
 }) {
   const isNumber = entry.entryType === "point_number";
   const [editing, setEditing] = useState(false);
@@ -75,7 +78,19 @@ export function PointItem({
   }
 
   return (
-    <li className="rounded-lg border border-border bg-card p-3">
+    <li
+      className={cn(
+        "rounded-lg border border-border bg-card p-3",
+        !editing &&
+          onEntryFocusAction &&
+          "cursor-pointer hover:bg-accent/40 transition-colors",
+      )}
+      onClick={
+        !editing
+          ? () => onEntryFocusAction?.(entry.timestamp, entry._id)
+          : undefined
+      }
+    >
       <div className="flex items-start gap-3">
         <div className="mt-1 text-muted-foreground" title={entry._id}>
           {isNumber ? (
@@ -94,7 +109,10 @@ export function PointItem({
               <>
                 <button
                   type="button"
-                  onClick={() => setMapOpen(true)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMapOpen(true);
+                  }}
                   className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                 >
                   <MapPin className="size-3" />
@@ -164,7 +182,10 @@ export function PointItem({
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => setEditing(true)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditing(true);
+              }}
               aria-label={t.common.edit}
             >
               <Pencil className="size-4" />
@@ -172,7 +193,10 @@ export function PointItem({
             <Button
               size="sm"
               variant="ghost"
-              onClick={handleDelete}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDelete();
+              }}
               aria-label={t.common.delete}
               className="text-destructive hover:text-destructive"
             >

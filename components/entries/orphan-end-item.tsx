@@ -31,6 +31,7 @@ import {
 import { openStartsBefore } from "@/lib/spans";
 import { useSyncContext } from "@/lib/db/sync-context";
 import { t } from "@/lib/i18n/en";
+import { cn } from "@/lib/utils";
 import type { Entry } from "@/lib/types";
 
 const NO_LINK = "__none__";
@@ -39,12 +40,14 @@ interface OrphanEndItemProps {
   entry: Entry;
   allEntries: Entry[];
   readOnly?: boolean;
+  onEntryFocusAction?: (isoTimestamp: string, entryId: string) => void;
 }
 
 export function OrphanEndItem({
   entry,
   allEntries,
   readOnly = false,
+  onEntryFocusAction,
 }: OrphanEndItemProps) {
   const [editing, setEditing] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
@@ -94,7 +97,19 @@ export function OrphanEndItem({
   }
 
   return (
-    <li className="rounded-lg border border-amber-500/60 bg-amber-50/40 p-3 dark:bg-amber-500/5">
+    <li
+      className={cn(
+        "rounded-lg border border-amber-500/60 bg-amber-50/40 p-3 dark:bg-amber-500/5",
+        !editing &&
+          onEntryFocusAction &&
+          "cursor-pointer hover:bg-accent/40 transition-colors",
+      )}
+      onClick={
+        !editing
+          ? () => onEntryFocusAction?.(entry.timestamp, entry._id)
+          : undefined
+      }
+    >
       <div className="flex items-start gap-3">
         <div className="mt-1 text-muted-foreground" title={entry._id}>
           <Square className="size-4" />
@@ -116,7 +131,10 @@ export function OrphanEndItem({
               <>
                 <button
                   type="button"
-                  onClick={() => setMapOpen(true)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMapOpen(true);
+                  }}
                   className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                 >
                   <MapPin className="size-3" />
@@ -198,7 +216,10 @@ export function OrphanEndItem({
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => setEditing(true)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditing(true);
+              }}
               aria-label={t.common.edit}
             >
               <Pencil className="size-4" />
@@ -206,7 +227,10 @@ export function OrphanEndItem({
             <Button
               size="sm"
               variant="ghost"
-              onClick={handleDelete}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDelete();
+              }}
               aria-label={t.common.delete}
               className="text-destructive hover:text-destructive"
             >

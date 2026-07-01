@@ -28,6 +28,7 @@ import {
 import { isOverrun } from "@/lib/spans";
 import { useSyncContext } from "@/lib/db/sync-context";
 import { t } from "@/lib/i18n/en";
+import { cn } from "@/lib/utils";
 import type { Entry } from "@/lib/types";
 
 interface PairedSpanItemProps {
@@ -35,6 +36,7 @@ interface PairedSpanItemProps {
   end: Entry;
   maxDurationMinutes?: number;
   readOnly?: boolean;
+  onEntryFocusAction?: (isoTimestamp: string, entryId: string) => void;
 }
 
 export function PairedSpanItem({
@@ -42,6 +44,7 @@ export function PairedSpanItem({
   end,
   maxDurationMinutes,
   readOnly = false,
+  onEntryFocusAction,
 }: PairedSpanItemProps) {
   const [editing, setEditing] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
@@ -106,11 +109,20 @@ export function PairedSpanItem({
 
   return (
     <li
-      className={`rounded-lg border p-3 ${
+      className={cn(
+        "rounded-lg border p-3",
         isReversed
           ? "border-destructive bg-card"
-          : "border-primary/30 bg-primary/5 dark:bg-primary/[0.07]"
-      }`}
+          : "border-primary/30 bg-primary/5 dark:bg-primary/[0.07]",
+        !editing &&
+          onEntryFocusAction &&
+          "cursor-pointer hover:bg-accent/40 transition-colors",
+      )}
+      onClick={
+        !editing
+          ? () => onEntryFocusAction?.(start.timestamp, start._id)
+          : undefined
+      }
     >
       <div className="flex items-start gap-3">
         <div
@@ -148,7 +160,10 @@ export function PairedSpanItem({
               <>
                 <button
                   type="button"
-                  onClick={() => setMapOpen(true)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMapOpen(true);
+                  }}
                   className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                 >
                   <MapPin className="size-3" />
@@ -242,7 +257,10 @@ export function PairedSpanItem({
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => setEditing(true)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditing(true);
+              }}
               aria-label={t.common.edit}
             >
               <Pencil className="size-4" />
@@ -250,7 +268,10 @@ export function PairedSpanItem({
             <Button
               size="sm"
               variant="ghost"
-              onClick={handleDelete}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDelete();
+              }}
               aria-label={t.common.delete}
               className="text-destructive hover:text-destructive"
             >

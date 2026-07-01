@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Map, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AddEntryDialog } from "@/components/entries/add-entry-dialog";
 import { EntryList } from "@/components/entries/entry-list";
 import { SeriesMapModal } from "@/components/entries/series-map-modal";
-import { Timeline } from "@/components/timeline/timeline";
+import { Timeline, type TimelineHandle } from "@/components/timeline/timeline";
 import { useEntries, useSeries } from "@/lib/db/hooks";
 import { formatDateTime, formatDurationDetailed } from "@/lib/format";
 import { t } from "@/lib/i18n/en";
@@ -29,6 +29,7 @@ export function SeriesDetail({ id }: { id: string }) {
   >();
   const [defaultType, setDefaultType] = useState<EntryType | undefined>();
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+  const timelineRef = useRef<TimelineHandle>(null);
 
   const handleDayChange = useCallback((day: Date) => setSelectedDay(day), []);
 
@@ -96,6 +97,7 @@ export function SeriesDetail({ id }: { id: string }) {
           {t.timeline.heading}
         </h2>
         <Timeline
+          ref={timelineRef}
           entries={entries}
           onDayChange={handleDayChange}
           onPickTime={
@@ -151,6 +153,7 @@ export function SeriesDetail({ id }: { id: string }) {
           entries={entries}
           maxDurationMinutes={series.maxDurationMinutes}
           readOnly={!!series.isArchived}
+          onEntryFocusAction={(ts, id) => timelineRef.current?.jumpTo(ts, id)}
         />
       </section>
 

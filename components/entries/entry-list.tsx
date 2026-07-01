@@ -12,6 +12,7 @@ interface EntryListProps {
   entries: Entry[];
   maxDurationMinutes?: number;
   readOnly?: boolean;
+  onEntryFocusAction?: (isoTimestamp: string, entryId: string) => void;
 }
 
 interface ResolvedSpans {
@@ -47,6 +48,7 @@ export function EntryList({
   entries,
   maxDurationMinutes,
   readOnly = false,
+  onEntryFocusAction,
 }: EntryListProps) {
   const { endByStartId, pairedEndIds } = useMemo(
     () => resolveSpans(entries),
@@ -83,7 +85,12 @@ export function EntryList({
           entry.entryType === "point_number"
         ) {
           return (
-            <PointItem key={entry._id} entry={entry} readOnly={readOnly} />
+            <PointItem
+              key={entry._id}
+              entry={entry}
+              readOnly={readOnly}
+              onEntryFocusAction={onEntryFocusAction}
+            />
           );
         }
         if (entry.entryType === "span_start") {
@@ -96,6 +103,7 @@ export function EntryList({
                 end={end}
                 maxDurationMinutes={maxDurationMinutes}
                 readOnly={readOnly}
+                onEntryFocusAction={onEntryFocusAction}
               />
             );
           }
@@ -106,6 +114,7 @@ export function EntryList({
               allEntries={entries}
               maxDurationMinutes={maxDurationMinutes}
               readOnly={readOnly}
+              onEntryFocusAction={onEntryFocusAction}
             />
           );
         }
@@ -116,6 +125,7 @@ export function EntryList({
             entry={entry}
             allEntries={entries}
             readOnly={readOnly}
+            onEntryFocusAction={onEntryFocusAction}
           />
         );
       })}

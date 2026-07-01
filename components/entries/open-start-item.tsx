@@ -36,6 +36,7 @@ import { orphanEndsAfter, isOverrun } from "@/lib/spans";
 import { clearOverrunFlag } from "@/lib/overrun-notifier";
 import { useSyncContext } from "@/lib/db/sync-context";
 import { t } from "@/lib/i18n/en";
+import { cn } from "@/lib/utils";
 import type { Entry } from "@/lib/types";
 
 const NO_LINK = "__none__";
@@ -45,6 +46,7 @@ interface OpenStartItemProps {
   allEntries: Entry[];
   maxDurationMinutes?: number;
   readOnly?: boolean;
+  onEntryFocusAction?: (isoTimestamp: string, entryId: string) => void;
 }
 
 export function OpenStartItem({
@@ -52,6 +54,7 @@ export function OpenStartItem({
   allEntries,
   maxDurationMinutes,
   readOnly = false,
+  onEntryFocusAction,
 }: OpenStartItemProps) {
   const now = useNow(10_000);
   const [editing, setEditing] = useState(false);
@@ -123,7 +126,19 @@ export function OpenStartItem({
   }
 
   return (
-    <li className="rounded-lg border border-amber-500/60 bg-amber-50/40 p-3 dark:bg-amber-500/5">
+    <li
+      className={cn(
+        "rounded-lg border border-amber-500/60 bg-amber-50/40 p-3 dark:bg-amber-500/5",
+        !editing &&
+          onEntryFocusAction &&
+          "cursor-pointer hover:bg-accent/40 transition-colors",
+      )}
+      onClick={
+        !editing
+          ? () => onEntryFocusAction?.(entry.timestamp, entry._id)
+          : undefined
+      }
+    >
       <div className="flex items-start gap-3">
         <div
           className="mt-1 text-amber-500 dark:text-amber-400"
@@ -161,7 +176,10 @@ export function OpenStartItem({
               <>
                 <button
                   type="button"
-                  onClick={() => setMapOpen(true)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMapOpen(true);
+                  }}
                   className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                 >
                   <MapPin className="size-3" />
@@ -260,7 +278,10 @@ export function OpenStartItem({
             <Button
               size="sm"
               variant="secondary"
-              onClick={handleCloseNow}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCloseNow();
+              }}
               disabled={busy}
               aria-label={t.entries.closeSpan}
             >
@@ -270,7 +291,10 @@ export function OpenStartItem({
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => setEditing(true)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditing(true);
+              }}
               aria-label={t.common.edit}
             >
               <Pencil className="size-4" />
@@ -278,7 +302,10 @@ export function OpenStartItem({
             <Button
               size="sm"
               variant="ghost"
-              onClick={handleDelete}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDelete();
+              }}
               aria-label={t.common.delete}
               className="text-destructive hover:text-destructive"
             >
