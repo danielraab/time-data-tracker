@@ -263,6 +263,7 @@ export function Timeline({
     touchStart.current = { x: tch.clientX, y: tch.clientY };
   }
   function handleTouchEnd(e: TouchEvent<HTMLDivElement>) {
+    e.preventDefault();
     const start = touchStart.current;
     touchStart.current = null;
     if (!start) return;
