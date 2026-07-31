@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-07-31
+
+### Added
+
+- **Quick-add buttons on series detail view**: the entries section header now has
+  "Add point" and "Start duration" quick-add buttons, positioned to the left of the
+  "Add entry" button, matching the dashboard's quick-add behavior. An "End duration"
+  button also appears whenever the series has an open duration, letting you close it
+  in one tap. Quick-add actions are hidden for archived series and trigger a sync plus
+  a success toast on completion.
+
 ## [1.9.1] - 2026-07-01
 
 ### Fixed

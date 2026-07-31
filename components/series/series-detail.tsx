@@ -2,17 +2,27 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Map, Plus } from "lucide-react";
+import {
+  ArrowLeft,
+  CircleDot,
+  Map,
+  Play,
+  Plus,
+  Square,
+} from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { AddEntryDialog } from "@/components/entries/add-entry-dialog";
 import { EntryList } from "@/components/entries/entry-list";
 import { SeriesMapModal } from "@/components/entries/series-map-modal";
 import { Timeline, type TimelineHandle } from "@/components/timeline/timeline";
+import { createEntry } from "@/lib/db/entries-repo";
 import { useEntries, useSeries } from "@/lib/db/hooks";
+import { useSyncContext } from "@/lib/db/sync-context";
 import { formatDateTime, formatDurationDetailed } from "@/lib/format";
 import { t } from "@/lib/i18n/en";
 import { checkOverruns } from "@/lib/overrun-notifier";
-import { sumDurationsForDay } from "@/lib/spans";
+import { openStarts, sumDurationsForDay } from "@/lib/spans";
 import { useNow } from "@/lib/use-now";
 import type { EntryType } from "@/lib/types";
 import { SeriesHeader } from "./series-header";
@@ -20,6 +30,7 @@ import { SeriesHeader } from "./series-header";
 export function SeriesDetail({ id }: { id: string }) {
   const { series, loading } = useSeries(id);
   const { entries } = useEntries(id);
+  const { trigger: syncNow } = useSyncContext();
   const now = useNow();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
@@ -63,6 +74,11 @@ export function SeriesDetail({ id }: { id: string }) {
     [entries],
   );
 
+  const openStartId = useMemo(
+    () => openStarts(entries)[0]?._id ?? null,
+    [entries],
+  );
+
   function openDialog(opts?: {
     timestamp?: string;
     endTimestamp?: string;
@@ -72,6 +88,38 @@ export function SeriesDetail({ id }: { id: string }) {
     setDefaultEndTimestamp(opts?.endTimestamp);
     setDefaultType(opts?.type);
     setDialogOpen(true);
+  }
+
+  async function addPoint() {
+    await createEntry({
+      seriesId: id,
+      entryType: "point_label",
+      timestamp: new Date().toISOString(),
+    });
+    syncNow();
+    toast.success(t.dashboard.quickAddPointAdded);
+  }
+
+  async function startDuration() {
+    await createEntry({
+      seriesId: id,
+      entryType: "span_start",
+      timestamp: new Date().toISOString(),
+    });
+    syncNow();
+    toast.success(t.dashboard.quickAddDurationStarted);
+  }
+
+  async function endDuration() {
+    if (!openStartId) return;
+    await createEntry({
+      seriesId: id,
+      entryType: "span_end",
+      timestamp: new Date().toISOString(),
+      startEntryId: openStartId,
+    });
+    syncNow();
+    toast.success(t.dashboard.quickAddDurationEnded);
   }
 
   if (loading) {
@@ -140,6 +188,39 @@ export function SeriesDetail({ id }: { id: string }) {
                 <Map className="size-4" />
                 {t.series.showOnMap}
               </Button>
+            )}
+            {!series.isArchived && (
+              <>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  title={t.dashboard.quickAddPoint}
+                  onClick={addPoint}
+                >
+                  <CircleDot className="size-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  title={t.dashboard.quickAddStartDuration}
+                  onClick={startDuration}
+                >
+                  <Play className="size-4" />
+                </Button>
+                {openStartId && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    title={t.dashboard.quickAddEndDuration}
+                    onClick={endDuration}
+                  >
+                    <Square className="size-4" />
+                  </Button>
+                )}
+              </>
             )}
             {!series.isArchived && (
               <Button size="sm" onClick={() => openDialog()}>
