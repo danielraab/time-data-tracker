@@ -6,6 +6,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.1] - 2026-08-20
+
+### Fixed
+
+- **Docker container couldn't create the SQLite database on first run**: the
+  `/app/data` directory (where the `tidatra-data` volume mounts) is now created
+  and `chown`'d to the non-root `nextjs` user during the image build, so
+  `better-sqlite3` can create `tidatra.db` there instead of failing with a
+  permission error on a fresh volume.
+- **Duplicate `depends_on` block in `docker-compose.yml`**: removed a redundant
+  second `depends_on: couchdb` entry for the `app` service.
+
+### Changed
+
+- **CI build job no longer sets placeholder `DATABASE_URL`, `BETTER_AUTH_SECRET`,
+  and `BETTER_AUTH_URL`**: none of these are read until a request is handled
+  (better-auth is initialized lazily via `getAuth()`), so `next build` doesn't
+  need them.
+
 ## [1.10.0] - 2026-07-31
 
 ### Added
