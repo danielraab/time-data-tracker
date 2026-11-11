@@ -10,7 +10,9 @@
     "lint": "eslint",
     "tsc": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "db:up": "docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --wait couchdb",
+    "db:down": "docker compose -f docker-compose.yml -f docker-compose.dev.yml down"
   },
   "dependencies": {
     "better-auth": "^1.6.22",

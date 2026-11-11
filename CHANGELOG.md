@@ -6,6 +6,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`pnpm db:up` / `pnpm db:down`**: start or stop a local CouchDB for development.
+  Reuses the `couchdb` service from `docker-compose.yml`. The new
+  `docker-compose.dev.yml` override publishes it on `127.0.0.1:5984` only and is never
+  loaded automatically, so `docker compose up -d` in production is unchanged.
+
+### Removed
+
+- **Dev container** (`.devcontainer/`), including its Mailpit and `couchdb:latest`
+  services. Develop on the host with Node 22, pnpm and Docker instead. For local
+  magic-link sign-in, leave `SMTP_HOST` unset: the link is printed to the `pnpm dev`
+  console.
+
+### Changed
+
+- **`.env.example` targets the host**: `COUCHDB_URL=http://localhost:5984`, and the
+  `SMTP_*` values are commented out (they previously pointed at the dev container's
+  `couchdb` / `mailpit` hostnames).
+
 ## [1.10.1] - 2026-08-20
 
 ### Fixed

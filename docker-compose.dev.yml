@@ -1,0 +1,12 @@
+# Local development override: publishes the CouchDB from docker-compose.yml on
+# the loopback interface so `pnpm dev` on the host can reach it.
+#
+# Never loaded automatically. Use it explicitly (or via `pnpm db:up`):
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d couchdb
+#
+# Bound to 127.0.0.1 so the dev admin credentials are not exposed to the LAN.
+services:
+  couchdb:
+    ports:
+      - "127.0.0.1:5984:5984"

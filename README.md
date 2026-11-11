@@ -42,9 +42,9 @@ your data is synchronised to the server and across your devices.
 
 ### Prerequisites
 
-- Node.js 20+
-- pnpm
-- A CouchDB instance (the included dev container provides one — see below)
+- Node.js 22
+- pnpm (`corepack enable` picks up the version pinned in `package.json`)
+- Docker with Compose, for the local CouchDB (or bring your own CouchDB 3)
 
 ### 1. Install dependencies
 
@@ -61,16 +61,23 @@ cp .env.example .env
 ```
 
 For purely local development you only need `DATABASE_URL` (defaults to a local SQLite
-file) and `BETTER_AUTH_SECRET`. OAuth and email values are optional — leave them blank to
-disable those sign-in methods.
+file) and `BETTER_AUTH_SECRET`. OAuth values are optional — leave them blank to disable
+those sign-in methods. Leave `SMTP_HOST` unset locally: magic-link URLs are then printed
+to the `pnpm dev` console instead of being emailed.
 
 ### 3. Start CouchDB
 
-A CouchDB service is included in the dev container (`.devcontainer/docker-compose.yml`)
-and runs automatically on `http://localhost:5984` (user `admin`, password `password`).
-If you are not using the dev container, run your own CouchDB instance and point
-`COUCHDB_URL` at it.
-Couchdb GUI is available under: http://localhost:5984/\_utils
+```bash
+pnpm db:up     # start CouchDB in the background (waits until healthy)
+pnpm db:down   # stop it (`pnpm db:down -v` also wipes the data volume)
+```
+
+This starts the `couchdb` service from the production `docker-compose.yml`, with
+`docker-compose.dev.yml` publishing it on `http://127.0.0.1:5984`. Credentials come from
+`COUCHDB_USER` / `COUCHDB_PASSWORD` in your `.env` (`admin` / `password` in the example).
+The CouchDB admin UI is at http://localhost:5984/\_utils.
+
+To use your own CouchDB instead, point `COUCHDB_URL` at it.
 
 ### 4. Run the dev server
 
@@ -82,13 +89,15 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Scripts
 
-| Command      | Description                  |
-| ------------ | ---------------------------- |
-| `pnpm dev`   | Start the development server |
-| `pnpm build` | Production build             |
-| `pnpm start` | Run the production build     |
-| `pnpm lint`  | Run ESLint                   |
-| `pnpm test`  | Run the Vitest test suite    |
+| Command        | Description                  |
+| -------------- | ---------------------------- |
+| `pnpm dev`     | Start the development server |
+| `pnpm build`   | Production build             |
+| `pnpm start`   | Run the production build     |
+| `pnpm lint`    | Run ESLint                   |
+| `pnpm test`    | Run the Vitest test suite    |
+| `pnpm db:up`   | Start local CouchDB (Docker) |
+| `pnpm db:down` | Stop local CouchDB           |
 
 ## Self-hosting
 
@@ -198,6 +207,6 @@ COUCHDB_USER=admin
 COUCHDB_PASSWORD=password
 ```
 
-The dev container provides CouchDB on `localhost:5984` with these credentials.
+`pnpm db:up` provides CouchDB on `localhost:5984` with these credentials.
 The server creates a per-user database (`tidatra_<userId>`) automatically on
 first sync.

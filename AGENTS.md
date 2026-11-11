@@ -59,7 +59,8 @@ TiDaTra (Time & Data Tracker) is an **offline-first PWA** for recording time ser
   it directly from UI components.
 - Environment variables: see `.env.example`. Anything browser-exposed must be prefixed
   `NEXT_PUBLIC_`. Never commit real secrets.
-- The dev container (`.devcontainer/`) provides CouchDB on `localhost:5984`.
+- Local CouchDB: `pnpm db:up` (root `docker-compose.yml` + `docker-compose.dev.yml`)
+  on `localhost:5984`. Development runs directly on the host (Node 22, pnpm, Docker).
 
 ## Commands
 
