@@ -153,7 +153,7 @@ GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 
 # Authentik / any OIDC provider
-# Callback URL: ${BETTER_AUTH_URL}/api/auth/oauth2/callback/authentik
+# Callback URL: ${BETTER_AUTH_URL}/api/auth/callback/authentik
 AUTHENTIK_CLIENT_ID=
 AUTHENTIK_CLIENT_SECRET=
 AUTHENTIK_ISSUER=https://auth.your-domain.com/application/o/tidatra

@@ -136,8 +136,8 @@ export function LoginForm({ providers }: { providers: EnabledProviders }) {
                 variant="outline"
                 className="w-full"
                 onClick={() =>
-                  authClient.signIn.oauth2({
-                    providerId: "authentik",
+                  authClient.signIn.social({
+                    provider: "authentik",
                     callbackURL: "/",
                   })
                 }
